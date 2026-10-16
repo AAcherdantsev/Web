@@ -1,0 +1,13 @@
+<Project>
+
+    <PropertyGroup>
+        <!-- Compiler warnings fail the build, so they cannot accumulate unnoticed -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Applies the pinned version from Directory.Packages.props to every project. -->
+        <PackageReference Include="System.Security.Cryptography.Pkcs"/>
+    </ItemGroup>
+
+</Project>
