@@ -1,0 +1,48 @@
+using System.Runtime.CompilerServices;
+using Microsoft.EntityFrameworkCore;
+using Web.Domain.Entities;
+
+[assembly: InternalsVisibleTo("Web.Infrastructure.Tests")]
+
+namespace Web.Infrastructure.Persistence;
+
+/// <summary>
+///     Entity Framework Core database context for managing product entities.
+/// </summary>
+internal class DatabaseContext : DbContext
+{
+    /// <summary>
+    ///     Creates a new instance of the <see cref="DatabaseContext" /> class with the specified options.
+    /// </summary>
+    /// <param name="options">The options.</param>
+    public DatabaseContext(DbContextOptions<DatabaseContext> options)
+        : base(options)
+    {
+    }
+
+    /// <summary>
+    ///     Creates a new instance of the <see cref="DatabaseContext" /> class.
+    /// </summary>
+    public DatabaseContext()
+    {
+    }
+
+    /// <summary>
+    ///     Gets or sets the products in the database.
+    /// </summary>
+    public DbSet<Product> Products { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.Property(p => p.Name).HasMaxLength(ProductLimits.MAX_NAME_LENGTH);
+            entity.Property(p => p.ImgUri).HasMaxLength(ProductLimits.MAX_IMG_URI_LENGTH);
+            entity.Property(p => p.Description).HasMaxLength(ProductLimits.MAX_DESCRIPTION_LENGTH);
+            entity.Property(p => p.Price).HasPrecision(18, 2);
+            // The product list is ordered by creation time and then by ID, so the list is paged with an index on both
+            entity.HasIndex(p => new { p.CreatedAt, p.Id });
+        });
+    }
+}
