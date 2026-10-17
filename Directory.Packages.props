@@ -1,0 +1,47 @@
+<Project>
+  <PropertyGroup>
+    <!-- Package versions are defined only in this file. Projects reference packages without a version. -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup Label="Application">
+    <PackageVersion Include="FluentResults" Version="4.0.0" />
+    <PackageVersion Include="Mapster" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.20.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.20.0" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.16.0" />
+  </ItemGroup>
+  <ItemGroup Label="Web API">
+    <PackageVersion Include="FastEndpoints.Swagger" Version="8.3.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
+  </ItemGroup>
+  <ItemGroup Label="Infrastructure">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+  </ItemGroup>
+  <ItemGroup Label="AppHost">
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.6.1" />
+  </ItemGroup>
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Moq" Version="4.21.0" />
+    <PackageVersion Include="NUnit" Version="5.0.0" />
+    <PackageVersion Include="NUnit.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
+  </ItemGroup>
+  <ItemGroup Label="Security">
+    <!-- Transitive dependency pinned to a version without known vulnerabilities. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- Transitive dependency of .NET Aspire, pinned to a version without known vulnerabilities. -->
+    <PackageVersion Include="MessagePack" Version="2.5.307" />
+  </ItemGroup>
+</Project>
