@@ -16,7 +16,7 @@ public static class ServiceCollectionExtensions
         public IServiceCollection AddConfiguredOpenTelemetry()
         {
             services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource.AddService("shop-products-api"))
+                .ConfigureResource(resource => resource.AddService("web-api"))
                 .WithTracing(tracing => tracing
                     .AddAspNetCoreInstrumentation()
                     .AddSqlClientInstrumentation())
