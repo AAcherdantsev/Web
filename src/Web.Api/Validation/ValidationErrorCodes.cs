@@ -20,4 +20,8 @@ public static class ValidationErrorCodes
         $"The description must not be longer than {ProductLimits.MAX_DESCRIPTION_LENGTH} characters.";
 
     public static readonly string ERROR_0007 = "The description is required.";
+
+    public static readonly string ERROR_0008 = "The page number must be greater than or equal to 0.";
+
+    public static string ERROR_0009(int maxPageSize) =>  $"The page size must be between 1 and {maxPageSize}.";
 }

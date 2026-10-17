@@ -1,4 +1,6 @@
 using FluentValidation;
+using Microsoft.Extensions.Options;
+using Web.Api.Configuration;
 using Web.Domain.Entities;
 using static Web.Api.Validation.ValidationErrorCodes;
 
@@ -37,6 +39,26 @@ public static class ValidationExtensions
             return ruleBuilder.NotNull()
                 .WithErrorCode(nameof(ERROR_0007)).WithMessage(ERROR_0007)
                 .ProductDescriptionRules();
+        }
+    }
+
+    extension<T>(IRuleBuilder<T, int> ruleBuilder)
+    {
+        public IRuleBuilderOptions<T, int> PageNumberRules()
+        {
+            return ruleBuilder.GreaterThanOrEqualTo(0)
+                .WithErrorCode(nameof(ERROR_0008))
+                .WithMessage(ERROR_0008);
+        }
+    }
+
+    extension<T>(IRuleBuilder<T, int?> ruleBuilder)
+    {
+        public IRuleBuilderOptions<T, int?> PageSizeRules(IOptions<PaginationOptions> pagination)
+        {
+            return ruleBuilder.InclusiveBetween(1, pagination.Value.MaxPageSize)
+                .WithErrorCode(nameof(ERROR_0009))
+                .WithMessage(ERROR_0009(pagination.Value.MaxPageSize));
         }
     }
 
