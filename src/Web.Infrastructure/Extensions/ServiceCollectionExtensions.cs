@@ -44,11 +44,11 @@ public static class ServiceCollectionExtensions
             return;
         }
 
-        string? connectionString = builder.Configuration.GetConnectionString("ProductsDb");
+        string? connectionString = builder.Configuration.GetConnectionString("WebDb");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                "The connection string 'ProductsDb' is not configured. Set ConnectionStrings__ProductsDb, " +
+                "The connection string 'WebDb' is not configured. Set ConnectionStrings__WebDb, " +
                 "or use DataSource=Mock for local development without a database.");
         }
 

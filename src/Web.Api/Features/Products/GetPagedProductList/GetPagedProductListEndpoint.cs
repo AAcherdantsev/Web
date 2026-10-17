@@ -37,7 +37,7 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
     /// </summary>
     public override void Configure()
     {
-        Get();
+        Get("/");
         Version(2);
         Group<ProductGroup>();
 

@@ -6,7 +6,9 @@ IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(ar
 string dataSource = builder.Configuration["DataSource"] ?? "Database";
 
 IResourceBuilder<ProjectResource> api = builder.AddProject<Web_Api>("web-api")
-    .WithEnvironment("DataSource", dataSource);
+    .WithEnvironment("DataSource", dataSource)
+    // The API has no endpoint at the root, so the dashboard link opens Swagger UI instead
+    .WithUrlForEndpoint("http", url => url.Url = "/swagger");
 
 if (dataSource == "Database")
 {

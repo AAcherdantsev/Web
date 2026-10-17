@@ -33,7 +33,7 @@ public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, Produ
     /// </summary>
     public override void Configure()
     {
-        Post();
+        Post("/");
         Version(1);
         Group<ProductGroup>();
 

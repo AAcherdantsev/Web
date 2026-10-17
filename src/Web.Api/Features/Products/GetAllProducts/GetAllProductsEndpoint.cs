@@ -30,7 +30,7 @@ public sealed class GetAllProductsEndpoint : EndpointWithoutRequest<List<Product
     /// </summary>
     public override void Configure()
     {
-        Get();
+        Get("/");
         Version(1);
         Group<ProductGroup>();
 
