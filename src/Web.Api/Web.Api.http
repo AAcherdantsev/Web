@@ -1,6 +1,32 @@
-@Web.Api_HostAddress = http://localhost:5211
+@host = http://localhost:5211
 
-GET {{Web.Api_HostAddress}}/weatherforecast/
+### List all products (v1, no pagination)
+GET {{host}}/v1/products
 Accept: application/json
 
-###
+### Get one product by ID (v1)
+GET {{host}}/v1/products/1
+Accept: application/json
+
+### Create a product (v1)
+POST {{host}}/v1/products
+Content-Type: application/json
+
+{
+  "name": "Phone",
+  "imgUri": "https://example.com/phone.jpg",
+  "price": 100,
+  "description": "A sample product."
+}
+
+### Update a product description (v1)
+PATCH {{host}}/v1/products/1
+Content-Type: application/json
+
+{
+  "description": "An updated description."
+}
+
+### Get a page of products (v2, default page size 10)
+GET {{host}}/v2/products?pageNumber=0&pageSize=2
+Accept: application/json
