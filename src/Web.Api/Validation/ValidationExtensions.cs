@@ -31,13 +31,22 @@ public static class ValidationExtensions
                 .WithErrorCode(nameof(ERROR_0006))
                 .WithMessage(_ => ERROR_0006);
         }
+
+        public IRuleBuilderOptions<T, string> ProductNewDescriptionRules()
+        {
+            return ruleBuilder.NotNull()
+                .WithErrorCode(nameof(ERROR_0007)).WithMessage(_ => ERROR_0007)
+                .ProductDescriptionRules();
+        }
     }
 
-    extension<T>(IRuleBuilder<T, int> ruleBuilder)
+    extension<T>(IRuleBuilder<T, decimal> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int> ProductPriceRules()
+        public IRuleBuilderOptions<T, decimal> ProductPriceRules()
         {
-            return ruleBuilder.GreaterThan(0).WithErrorCode(nameof(ERROR_0003)).WithMessage(_ => ERROR_0003);
+            return ruleBuilder.GreaterThan(0)
+                .WithErrorCode(nameof(ERROR_0003))
+                .WithMessage(_ => ERROR_0003);
         }
     }
 }
