@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
     /// <param name="builder">The host application builder to configure services on.</param>
     /// <exception cref="InvalidOperationException">
     ///     Thrown when the <c>DataSource</c> value is unknown, when <c>Mock</c> is used in Production,
-    ///     or when the <c>ProductsDb</c> connection string is missing.
+    ///     or when the <c>WebDb</c> connection string is missing.
     /// </exception>
     public static void AddRepository(this IHostApplicationBuilder builder)
     {
