@@ -187,7 +187,9 @@ public class ProductRepositoryTests
         // Arrange
         CreateProductCommand command = new()
         {
-            Name = "Minimal Product", ImgUri = "https://example.com/minimal.jpg", Price = 1
+            Name = "Minimal Product",
+            ImgUri = "https://example.com/minimal.jpg",
+            Price = 1
         };
 
         // Act
@@ -222,7 +224,9 @@ public class ProductRepositoryTests
         // Arrange
         CreateProductCommand command = new()
         {
-            Name = new('x', ProductLimits.MAX_NAME_LENGTH + 1), ImgUri = "https://example.com/image.jpg", Price = 1
+            Name = new('x', ProductLimits.MAX_NAME_LENGTH + 1),
+            ImgUri = "https://example.com/image.jpg",
+            Price = 1
         };
 
         // Act
@@ -239,7 +243,9 @@ public class ProductRepositoryTests
         // Arrange
         CreateProductCommand command = new()
         {
-            Name = "Test Product", ImgUri = "https://example.com/test.jpg", Price = 1
+            Name = "Test Product",
+            ImgUri = "https://example.com/test.jpg",
+            Price = 1
         };
 
         await _context.DisposeAsync();

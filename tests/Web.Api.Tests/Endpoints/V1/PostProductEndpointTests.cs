@@ -29,7 +29,10 @@ public class PostProductEndpointTests : IntegrationTestBase
 
         CreateProductRequest request = new()
         {
-            Name = "Test Product", ImgUri = "http://image", Price = 10, Description = "desc"
+            Name = "Test Product",
+            ImgUri = "http://image",
+            Price = 10,
+            Description = "desc"
         };
 
         string json = JsonSerializer.Serialize(request);
