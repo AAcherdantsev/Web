@@ -68,7 +68,8 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
     {
         GetPagedProductsQuery query = new()
         {
-            PageNumber = req.PageNumber, PageSize = req.PageSize ?? _pagination.DefaultPageSize
+            PageNumber = req.PageNumber,
+            PageSize = req.PageSize ?? _pagination.DefaultPageSize
         };
 
         Result<PagedList<Product>> result = await _productRepository.GetAllProductsAsync(query, ct);

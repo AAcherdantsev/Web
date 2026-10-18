@@ -13,7 +13,7 @@ internal static class SwaggerDocumentExtensions
         /// <summary>
         ///     Adds Swagger documents to the service collection for each specified version.
         /// </summary>
-        public  void AddSwaggerDocuments()
+        public void AddSwaggerDocuments()
         {
             services.AddSwaggerDocument(1);
             services.AddSwaggerDocument(2);

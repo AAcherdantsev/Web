@@ -26,9 +26,9 @@ public class UpdateProductDescriptionRequestValidatorTests
     public void Description_LongerThanTheLimit_HasError()
     {
         _validator.TestValidate(new UpdateProductDescriptionRequest
-            {
-                Description = new('x', Domain.Entities.ProductLimits.MAX_DESCRIPTION_LENGTH + 1)
-            })
+        {
+            Description = new('x', Domain.Entities.ProductLimits.MAX_DESCRIPTION_LENGTH + 1)
+        })
             .ShouldHaveValidationErrorFor(x => x.Description);
     }
 }

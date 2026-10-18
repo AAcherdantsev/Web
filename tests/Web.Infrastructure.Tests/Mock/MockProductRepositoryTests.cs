@@ -77,7 +77,9 @@ public class MockProductRepositoryTests
         // Arrange
         CreateProductCommand command = new()
         {
-            Name = "Mock Product", ImgUri = "https://example.com/mock.jpg", Price = 5
+            Name = "Mock Product",
+            ImgUri = "https://example.com/mock.jpg",
+            Price = 5
         };
 
         // Act

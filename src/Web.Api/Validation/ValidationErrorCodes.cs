@@ -23,5 +23,5 @@ public static class ValidationErrorCodes
 
     public static readonly string ERROR_0008 = "The page number must be greater than or equal to 0.";
 
-    public static string ERROR_0009(int maxPageSize) =>  $"The page size must be between 1 and {maxPageSize}.";
+    public static string ERROR_0009(int maxPageSize) => $"The page size must be between 1 and {maxPageSize}.";
 }
