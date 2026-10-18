@@ -1,0 +1,73 @@
+name: PR check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Format, build, vulnerabilities, and notices
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore packages
+        run: dotnet restore Web.slnx
+
+      - name: Check formatting
+        run: dotnet format whitespace Web.slnx --verify-no-changes --no-restore
+
+      - name: Build with warnings as errors
+        run: dotnet build Web.slnx --no-restore --configuration Release
+
+      - name: Check for vulnerable packages
+        run: |
+          # dotnet list exits with 0 even when it finds vulnerabilities, so the output is checked
+          if dotnet list Web.slnx package --vulnerable --include-transitive | tee vulnerable.txt | grep -q "has the following vulnerable packages"; then
+            cat vulnerable.txt
+            echo "::error::The solution uses packages with known vulnerabilities."
+            exit 1
+          fi
+
+      - name: Check that the third-party notices are up to date
+        run: |
+          bash scripts/generate-third-party-notices.sh
+          if ! git diff --exit-code THIRD-PARTY-NOTICES.md; then
+            echo "::error::THIRD-PARTY-NOTICES.md is out of date. Run scripts/generate-third-party-notices.sh and commit the result."
+            exit 1
+          fi
+
+  affected-tests:
+    name: Build and test affected projects
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@v4
+        with:
+          # Full history is needed so that dotnet-affected can compare against the base branch
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build and test affected projects
+        run: bash scripts/run-affected-tests.sh "origin/${{ github.base_ref }}"
