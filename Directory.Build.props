@@ -1,7 +1,6 @@
 <Project>
 
     <PropertyGroup>
-        <!-- Compiler warnings fail the build, so they cannot accumulate unnoticed -->
         <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
 
