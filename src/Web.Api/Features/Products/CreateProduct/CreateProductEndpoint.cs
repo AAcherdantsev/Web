@@ -66,10 +66,7 @@ public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, Produ
     {
         CreateProductCommand command = new()
         {
-            Name = req.Name,
-            ImgUri = req.ImgUri,
-            Price = req.Price,
-            Description = req.Description
+            Name = req.Name, ImgUri = req.ImgUri, Price = req.Price, Description = req.Description
         };
 
         Result<Product> result = await _productService.CreateAsync(command, ct);

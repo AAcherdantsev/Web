@@ -60,7 +60,7 @@ public static class DatabaseInitializer
     /// <param name="context">The database context.</param>
     private static async Task MigrateWithRetryAsync(DatabaseContext context)
     {
-        for (int attempt = 1; ; attempt++)
+        for (int attempt = 1;; attempt++)
         {
             try
             {

@@ -17,10 +17,7 @@ public class ProductFactoryTests
     {
         CreateProductCommand command = new()
         {
-            Name = "Phone",
-            ImgUri = "https://example.com/phone.jpg",
-            Price = 99.99m,
-            Description = "A phone"
+            Name = "Phone", ImgUri = "https://example.com/phone.jpg", Price = 99.99m, Description = "A phone"
         };
 
         Result<Product> result = ProductFactory.Create(command, CreatedAt);

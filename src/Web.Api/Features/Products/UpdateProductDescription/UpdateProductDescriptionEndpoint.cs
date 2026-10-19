@@ -62,11 +62,7 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
     {
         int productId = Route<int>("id");
 
-        UpdateProductDescriptionCommand command = new()
-        {
-            Id = productId,
-            Description = req.Description
-        };
+        UpdateProductDescriptionCommand command = new() { Id = productId, Description = req.Description };
 
         Result<Product> result = await _productService.UpdateDescriptionAsync(command, ct);
 

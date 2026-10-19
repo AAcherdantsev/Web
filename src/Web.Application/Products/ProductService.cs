@@ -68,7 +68,8 @@ public sealed class ProductService : IProductService
     public async Task<Result<Product>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command,
         CancellationToken cancellationToken)
     {
-        ValidationResult validation = await new UpdateProductDescriptionValidator().ValidateAsync(command, cancellationToken);
+        ValidationResult validation =
+            await new UpdateProductDescriptionValidator().ValidateAsync(command, cancellationToken);
 
         if (!validation.IsValid)
         {

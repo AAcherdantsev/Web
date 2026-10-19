@@ -17,7 +17,8 @@ public class PatchProductEndpointTests : IntegrationTestBase
     public async Task PatchProduct_ReturnsTheUpdatedProduct()
     {
         // Arrange
-        ServiceMock.Setup(s => s.UpdateDescriptionAsync(new() { Id = 4, Description  = "New text" }, It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s =>
+                s.UpdateDescriptionAsync(new() { Id = 4, Description = "New text" }, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok(TestProducts.Create(4, "Phone", 10, "New text")));
 
         // Act
@@ -44,7 +45,8 @@ public class PatchProductEndpointTests : IntegrationTestBase
     [Test]
     public async Task PatchProduct_WhenMissing_Returns404()
     {
-        ServiceMock.Setup(s => s.UpdateDescriptionAsync(new() { Id = 4, Description = "x"}, It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s =>
+                s.UpdateDescriptionAsync(new() { Id = 4, Description = "x" }, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
 
         HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",

@@ -34,5 +34,6 @@ public interface IProductService
     ///     Replaces the description of a product. Fails with <see cref="NotFoundError" /> when the product does not
     ///     exist, or when the description breaks a business rule.
     /// </summary>
-    Task<Result<Product>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command, CancellationToken cancellationToken);
+    Task<Result<Product>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command,
+        CancellationToken cancellationToken);
 }
