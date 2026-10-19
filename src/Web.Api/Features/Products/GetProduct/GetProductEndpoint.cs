@@ -21,7 +21,7 @@ public sealed class GetProductEndpoint : EndpointWithoutRequest<ProductDto>
     /// <summary>
     ///     Initializes a new instance of the <see cref="GetProductEndpoint" /> class.
     /// </summary>
-    /// <param name="productService">The repository used to access product data.</param>
+    /// <param name="productService">The product service used to access product data.</param>
     public GetProductEndpoint(IProductService productService)
     {
         _productService = productService;

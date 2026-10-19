@@ -22,7 +22,7 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
     /// <summary>
     ///     Initializes a new instance of the <see cref="GetPagedProductListEndpoint" /> class.
     /// </summary>
-    /// <param name="productService">The repository used to retrieve product data.</param>
+    /// <param name="productService">The product service used to retrieve product data.</param>
     /// <param name="pagination">The pagination settings, including the default page size.</param>
     public GetPagedProductListEndpoint(IProductService productService, IOptions<PaginationOptions> pagination)
     {

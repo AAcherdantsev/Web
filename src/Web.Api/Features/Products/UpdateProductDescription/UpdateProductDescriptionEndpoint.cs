@@ -21,7 +21,7 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
     /// <summary>
     ///     Initializes a new instance of the <see cref="UpdateProductDescriptionEndpoint" /> class.
     /// </summary>
-    /// <param name="productService">The repository used to access and update product data.</param>
+    /// <param name="productService">The product service used to access and update product data.</param>
     public UpdateProductDescriptionEndpoint(IProductService productService)
     {
         _productService = productService;

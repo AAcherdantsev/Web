@@ -21,7 +21,7 @@ public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, Produ
     /// <summary>
     ///     Initializes a new instance of the <see cref="CreateProductEndpoint" /> class.
     /// </summary>
-    /// <param name="productService">The repository used to create and store product data.</param>
+    /// <param name="productService">The product service used to create and store product data.</param>
     public CreateProductEndpoint(IProductService productService)
     {
         _productService = productService;
