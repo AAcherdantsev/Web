@@ -44,11 +44,18 @@ public static class ValidationExtensions
 
     extension<T>(IRuleBuilder<T, int?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int?> PageNumberRules()
+        public IRuleBuilderOptions<T, int?> PageNumberRules(IOptions<PaginationOptions> pagination, Func<T, int?> pageSizeSelector)
         {
-            return ruleBuilder.GreaterThanOrEqualTo(0)
+            return ruleBuilder
+                .GreaterThanOrEqualTo(0)
                 .WithErrorCode(nameof(ERROR_0008))
-                .WithMessage(ERROR_0008);
+                .WithMessage(ERROR_0008)
+                .Must((request, pageNumber) =>
+                    (long) (pageNumber ?? 0) *
+                    (pageSizeSelector(request) ?? pagination.Value.DefaultPageSize)
+                    <= int.MaxValue)
+                .WithErrorCode(nameof(ERROR_0010))
+                .WithMessage(ERROR_0010);
         }
     }
 
