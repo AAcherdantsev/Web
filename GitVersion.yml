@@ -1,0 +1,17 @@
+# Versions are calculated from the git history by GitVersion (see docs/adr/0020-semantic-versioning-with-gitversion.md)
+mode: ContinuousDelivery
+
+# The first release. Until a release tag exists, GitVersion counts the commits since this version.
+next-version: 1.0.0
+
+branches:
+  main:
+    regex: ^main$
+    label: ''
+    increment: Patch
+    is-release-branch: true
+  feature:
+    regex: ^feature[/-]
+    label: alpha
+    increment: Inherit
+    track-merge-target: false

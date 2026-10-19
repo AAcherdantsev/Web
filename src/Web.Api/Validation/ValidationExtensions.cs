@@ -8,18 +8,18 @@ namespace Web.Api.Validation;
 
 public static class ValidationExtensions
 {
-    extension<T>(IRuleBuilder<T, string> ruleBuilder)
+    extension<T>(IRuleBuilder<T, string?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, string> ProductNameRules()
+        public IRuleBuilderOptions<T, string?> ProductNameRules()
         {
             return ruleBuilder.NotEmpty().WithErrorCode(nameof(ERROR_0001)).WithMessage(ERROR_0001)
                 .MaximumLength(ProductLimits.MAX_NAME_LENGTH).WithErrorCode(nameof(ERROR_0002))
                 .WithMessage(ERROR_0002);
         }
 
-        public IRuleBuilderOptions<T, string> ProductImageUrlRules()
+        public IRuleBuilderOptions<T, string?> ProductImageUrlRules()
         {
-            return ruleBuilder.Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _))
+            return ruleBuilder.Must(ProductImageUri.IsValid)
                 .WithErrorCode(nameof(ERROR_0004))
                 .WithMessage(ERROR_0004)
                 .MaximumLength(ProductLimits.MAX_IMG_URI_LENGTH)
@@ -27,14 +27,14 @@ public static class ValidationExtensions
                 .WithMessage(ERROR_0005);
         }
 
-        public IRuleBuilderOptions<T, string> ProductDescriptionRules()
+        public IRuleBuilderOptions<T, string?> ProductDescriptionRules()
         {
             return ruleBuilder.MaximumLength(ProductLimits.MAX_DESCRIPTION_LENGTH)
                 .WithErrorCode(nameof(ERROR_0006))
                 .WithMessage(ERROR_0006);
         }
 
-        public IRuleBuilderOptions<T, string> ProductNewDescriptionRules()
+        public IRuleBuilderOptions<T, string?> ProductNewDescriptionRules()
         {
             return ruleBuilder.NotNull()
                 .WithErrorCode(nameof(ERROR_0007)).WithMessage(ERROR_0007)
@@ -42,13 +42,20 @@ public static class ValidationExtensions
         }
     }
 
-    extension<T>(IRuleBuilder<T, int> ruleBuilder)
+    extension<T>(IRuleBuilder<T, int?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int> PageNumberRules()
+        public IRuleBuilderOptions<T, int?> PageNumberRules(IOptions<PaginationOptions> pagination, Func<T, int?> pageSizeSelector)
         {
-            return ruleBuilder.GreaterThanOrEqualTo(0)
+            return ruleBuilder
+                .GreaterThanOrEqualTo(0)
                 .WithErrorCode(nameof(ERROR_0008))
-                .WithMessage(ERROR_0008);
+                .WithMessage(ERROR_0008)
+                .Must((request, pageNumber) =>
+                    (long) (pageNumber ?? 0) *
+                    (pageSizeSelector(request) ?? pagination.Value.DefaultPageSize)
+                    <= int.MaxValue)
+                .WithErrorCode(nameof(ERROR_0010))
+                .WithMessage(ERROR_0010);
         }
     }
 

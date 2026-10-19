@@ -28,12 +28,12 @@ public class Product : BaseEntity
     /// <summary>
     ///     Date and time when the product was created.
     /// </summary>
-    public DateTime CreatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
     ///     Date and time when the product was last updated.
     /// </summary>
-    public DateTime LastUpdatedAt { get; set; }
+    public DateTimeOffset LastUpdatedAt { get; set; }
 
     /// <inheritdoc />
     public override string ToString()

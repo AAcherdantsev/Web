@@ -20,10 +20,10 @@ public sealed class CreateProductRequest
     /// <summary>
     ///     The price of the product to be created. This property is required.
     /// </summary>
-    public decimal Price { get; init; }
+    public required decimal Price { get; init; }
 
     /// <summary>
     ///     The description of the product to be created. This property is optional.
     /// </summary>
-    public string Description { get; init; } = string.Empty;
+    public string? Description { get; init; }
 }

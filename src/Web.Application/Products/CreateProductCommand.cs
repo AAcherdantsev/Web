@@ -23,5 +23,5 @@ public sealed class CreateProductCommand
     /// <summary>
     ///     The description of the product to be created.
     /// </summary>
-    public string Description { get; init; } = string.Empty;
+    public string? Description { get; init; }
 }

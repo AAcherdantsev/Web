@@ -20,8 +20,8 @@ public class GetProductEndpointTests : IntegrationTestBase
             ImgUri = "http://image",
             Price = 10,
             Description = "desc",
-            CreatedAt = DateTime.UtcNow,
-            LastUpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            LastUpdatedAt = DateTimeOffset.UtcNow
         };
 
         RepositoryMock.Setup(r => r.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))

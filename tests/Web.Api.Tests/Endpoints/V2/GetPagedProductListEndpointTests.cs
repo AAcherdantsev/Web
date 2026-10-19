@@ -24,8 +24,8 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
                     ImgUri = "http://image",
                     Price = 10,
                     Description = "desc",
-                    CreatedAt = DateTime.UtcNow,
-                    LastUpdatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    LastUpdatedAt = DateTimeOffset.UtcNow
                 }
             }, 1, 10, 1);
 

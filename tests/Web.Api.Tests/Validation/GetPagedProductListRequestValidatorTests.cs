@@ -49,4 +49,26 @@ public class GetPagedProductListRequestValidatorTests
         _validator.TestValidate(new GetPagedProductListRequest { PageNumber = pageNumber })
             .ShouldHaveValidationErrorFor(x => x.PageNumber);
     }
+
+    [Test]
+    public void PageNumber_WhenOmitted_HasNoErrors()
+    {
+        _validator.TestValidate(new GetPagedProductListRequest { PageNumber = null })
+            .ShouldNotHaveValidationErrorFor(x => x.PageNumber);
+    }
+
+    [Test]
+    public void PageNumber_WhenOffsetOverflowsInt_HasError()
+    {
+        // 2147483647 * 100 does not fit in the int offset of the database query
+        _validator.TestValidate(new GetPagedProductListRequest { PageNumber = int.MaxValue, PageSize = 100 })
+            .ShouldHaveValidationErrorFor(x => x.PageNumber);
+    }
+
+    [Test]
+    public void PageNumber_WhenLargestOffsetFitsInt_HasNoErrors()
+    {
+        _validator.TestValidate(new GetPagedProductListRequest { PageNumber = int.MaxValue / 10, PageSize = 10 })
+            .ShouldNotHaveValidationErrorFor(x => x.PageNumber);
+    }
 }

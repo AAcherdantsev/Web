@@ -55,7 +55,7 @@ public class SqlServerProductRepositoryTests
     public async Task GetAllProductsAsync_PagesWithoutDuplicatesOrGaps_WhenCreatedAtIsEqual()
     {
         // Arrange: identical timestamps make the ordering depend on the ID tie-breaker
-        DateTime createdAt = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTimeOffset createdAt = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         for (int i = 1; i <= 5; i++)
         {
             _context.Products.Add(new()
@@ -153,5 +153,23 @@ public class SqlServerProductRepositoryTests
                 "INSERT INTO Products (Name, ImgUri, Price, Description, CreatedAt, LastUpdatedAt) VALUES ({0}, 'https://example.com/x.jpg', 1, '', SYSUTCDATETIME(), SYSUTCDATETIME())",
                 tooLong),
             Throws.Exception);
+    }
+
+    [Test]
+    public async Task CreateProductAsync_ReadsTimestampsWithUtcOffset()
+    {
+        // Arrange
+        DateTimeOffset before = DateTimeOffset.UtcNow;
+
+        // Act
+        Result<Product> result = await _repository.CreateProductAsync(
+            new() { Name = "Offset", ImgUri = "https://example.com/o.jpg", Price = 1 }, CancellationToken.None);
+        _context.ChangeTracker.Clear();
+        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == result.Value.Id);
+
+        // Assert: a datetime2 column would read back without an offset, which would serialize without the Z suffix
+        Assert.That(stored.CreatedAt.Offset, Is.EqualTo(TimeSpan.Zero));
+        Assert.That(stored.CreatedAt, Is.GreaterThanOrEqualTo(before.AddSeconds(-1)));
+        Assert.That(stored.Description, Is.Empty);
     }
 }

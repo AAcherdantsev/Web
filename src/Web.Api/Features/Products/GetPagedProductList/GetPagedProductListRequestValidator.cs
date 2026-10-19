@@ -17,7 +17,9 @@ public sealed class GetPagedProductListRequestValidator : Validator<GetPagedProd
     /// <param name="pagination">The pagination settings.</param>
     public GetPagedProductListRequestValidator(IOptions<PaginationOptions> pagination)
     {
-        RuleFor(x => x.PageNumber).PageNumberRules();
+        // The offset of a page is an int in the database query, so the page must start inside the int range
+        RuleFor(x => x.PageNumber)
+            .PageNumberRules(pagination, x => x.PageSize);
 
         // A missing page size falls back to the configured default, so only a supplied value is checked
         RuleFor(x => x.PageSize).PageSizeRules(pagination)

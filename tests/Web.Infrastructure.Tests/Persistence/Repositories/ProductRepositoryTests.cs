@@ -267,7 +267,7 @@ public class ProductRepositoryTests
         await _context.Products.AddAsync(product);
         await _context.SaveChangesAsync();
 
-        DateTime originalLastUpdatedAt = product.LastUpdatedAt;
+        DateTimeOffset originalLastUpdatedAt = product.LastUpdatedAt;
 
         // Act
         Result<Product> result = await _repository.UpdateProductDescriptionAsync(product.Id, "New description",
@@ -320,14 +320,14 @@ public class ProductRepositoryTests
             ImgUri = "https://example.com/image.jpg",
             Price = price,
             Description = "Test description",
-            CreatedAt = DateTime.UtcNow,
-            LastUpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            LastUpdatedAt = DateTimeOffset.UtcNow
         };
     }
 
     private static List<Product> CreateTestProducts()
     {
-        DateTime baseTime = DateTime.UtcNow.AddHours(-3);
+        DateTimeOffset baseTime = DateTimeOffset.UtcNow.AddHours(-3);
 
         return
         [

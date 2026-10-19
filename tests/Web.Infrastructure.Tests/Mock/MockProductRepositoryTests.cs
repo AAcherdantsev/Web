@@ -31,7 +31,7 @@ public class MockProductRepositoryTests
 
         // Assert
         Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value.Count(), Is.EqualTo(ProductSeedData.CreateProducts(DateTime.UtcNow).Count));
+        Assert.That(result.Value.Count(), Is.EqualTo(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class MockProductRepositoryTests
         Result<PagedList<Product>> result = await _repository.GetAllProductsAsync(query, CancellationToken.None);
 
         // Assert
-        int total = ProductSeedData.CreateProducts(DateTime.UtcNow).Count;
+        int total = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count;
         Assert.That(result.Value.TotalCount, Is.EqualTo(total));
         Assert.That(result.Value.Values, Has.Count.EqualTo(total - 4));
     }
@@ -88,7 +88,7 @@ public class MockProductRepositoryTests
 
         // Assert
         Assert.That(created.IsSuccess, Is.True);
-        Assert.That(created.Value.Id, Is.GreaterThan(ProductSeedData.CreateProducts(DateTime.UtcNow).Count));
+        Assert.That(created.Value.Id, Is.GreaterThan(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
         Assert.That(fetched.Value.Name, Is.EqualTo("Mock Product"));
     }
 

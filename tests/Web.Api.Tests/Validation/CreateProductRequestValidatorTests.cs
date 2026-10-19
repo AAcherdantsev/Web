@@ -81,4 +81,23 @@ public class CreateProductRequestValidatorTests
 
         _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.Description);
     }
+
+    [Test]
+    public void Description_WhenNull_IsAllowed()
+    {
+        CreateProductRequest request = ValidRequest();
+        request = new() { Name = request.Name, ImgUri = request.ImgUri, Price = request.Price, Description = null };
+
+        _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [TestCase("javascript:alert(1)")]
+    [TestCase("file:///etc/passwd")]
+    [TestCase("ftp://example.com/a.jpg")]
+    public void ImgUri_WithSchemeOtherThanHttp_HasError(string imgUri)
+    {
+        CreateProductRequest request = new() { Name = "A", ImgUri = imgUri, Price = 1 };
+
+        _validator.TestValidate(request).ShouldHaveValidationErrorFor(x => x.ImgUri);
+    }
 }

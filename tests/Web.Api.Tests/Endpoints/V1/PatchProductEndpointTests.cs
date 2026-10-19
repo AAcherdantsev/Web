@@ -26,8 +26,8 @@ public class PatchProductEndpointTests : IntegrationTestBase
             ImgUri = "http://image",
             Price = 10,
             Description = newDescription,
-            CreatedAt = DateTime.UtcNow,
-            LastUpdatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow,
+            LastUpdatedAt = DateTimeOffset.UtcNow
         };
 
         string json = JsonSerializer.Serialize(new { Description = newDescription });
