@@ -25,6 +25,7 @@ Records are numbered and never deleted. When a decision changes, add a new recor
 | [0017](0017-operational-endpoints-and-telemetry.md) | Operational endpoints and telemetry | Accepted |
 | [0018](0018-migrations-as-a-separate-step.md) | Migrations as a separate step in Production | Accepted |
 | [0019](0019-input-limits-and-paging-order.md) | Input limits and stable paging order | Accepted |
+| [0020](0020-semantic-versioning-with-gitversion.md) | Semantic versions calculated from git history with GitVersion | Accepted |
 
 ## Template
 

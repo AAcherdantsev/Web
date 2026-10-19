@@ -1,34 +1,56 @@
 # Web API
 
-**Web API** is a REST API for managing the products of a demo e-commerce shop. It is built with **.NET 10**, **FastEndpoints**, and **Entity Framework Core**, and it stores data in **MS SQL Server**. The solution also has an in-memory **mock data source**, so the API can run without a database.
+A REST API for managing the products of an e-commerce shop. It is the implementation of the **WebApi Application** assignment: it lists all products, lists them with pagination (v2), returns one product, creates a product, and updates a product's description. The API is built with **.NET 10**, **FastEndpoints**, and **Entity Framework Core**, and it stores data in **MS SQL Server**. An in-memory **mock data source** lets the API run, and its unit tests run, without a database.
 
-## Features
+## Assignment coverage
 
-* Products with the attributes `Id`, `Name`, `ImgUri`, `Price`, and `Description` (optional)
-* Endpoints (see [API endpoints](#api-endpoints)):
-  * list all products (v1)
-  * list products with pagination, default page size 10 (v2)
-  * get a product by ID (v1)
-  * create a product (v1)
-  * update a product description (v1)
-* API versioning through the URL (`/v1/...`, `/v2/...`), reflected in the Swagger documents
-* Swagger UI for all endpoints
-* Switching between the **mock** and **database** data sources with one setting
-* Database migrations and seed data applied automatically on startup in development
-* Unit and integration tests
+| Requirement from the assignment | Where it is implemented |
+| --- | --- |
+| Product with `Id`, `Name` (required), `ImgUri` (required), `Price` (required, decimal), `Description` (optional) | `Web.Domain/Entities/Product.cs`, `Web.Api/Models/ProductDto.cs` |
+| API endpoint to list all products | `GET /v1/products` |
+| v2 of the list endpoint with pagination, default page size 10, versioning shown in the documentation | `GET /v2/products` and the `v2` Swagger document |
+| API endpoint to retrieve one product by ID | `GET /v1/products/{id}` |
+| API endpoint to update a product's description | `PATCH /v1/products/{id}` |
+| Swagger documentation of all endpoints, accessible after running the project on localhost | `http://localhost:5211/swagger` |
+| Unit tests covering the endpoints | `tests/Web.Api.Tests` and `tests/Web.Infrastructure.Tests` |
+| Layered architecture and SOLID design | `Web.Api`, `Web.Application`, `Web.Domain`, `Web.Infrastructure`; see [ADR 0002](docs/adr/0002-layered-architecture.md) |
+| MS SQL Server storage, initial seed data | `Web.Infrastructure` (EF Core, migrations, `DatabaseInitializer`) |
+| Mock data for unit tests and development | `Web.Infrastructure/Mock` (`MockProductRepository`, `ProductSeedData`) |
+| Easy switch between the mock and the database | the `DataSource` setting, see [ADR 0006](docs/adr/0006-selectable-data-source.md) |
+| README with the application, prerequisites, how to run it, and how to run the tests | this file |
+
+## Work beyond the assignment
+
+The assignment asked for the API, its documentation, tests, and a README. The repository also contains the following, so that the project can be developed and released like a production codebase.
+
+* **Local hosting with .NET Aspire.** The AppHost starts the API and SQL Server in a container, with a dashboard for logs, traces, and the API's address. SQL Server data is kept in a Docker volume ([ADR 0007](docs/adr/0007-dotnet-aspire-for-local-hosting.md)).
+* **Startup validation and configuration.** Pagination and rate limit settings are validated when the application starts. `Mock` is refused in the Production environment, and a missing connection string stops the start with a clear message.
+* **Production behaviour.** Swagger is turned off in Production, security headers are added to every response, and HSTS and a Content-Security-Policy are used. The migrations run as a separate step with `--migrate-only` ([ADR 0018](docs/adr/0018-migrations-as-a-separate-step.md)). An operations guide is in [`docs/operations.md`](docs/operations.md).
+* **Rate limiting** per client IP, with separate read and write limits and RFC 7807 responses for rejected requests ([ADR 0015](docs/adr/0015-rate-limiting.md)).
+* **Input limits and stable paging.** Field lengths are limited in the validators, the business rules, and the database schema. The product list is ordered by creation time and ID, so paging does not skip or repeat products ([ADR 0019](docs/adr/0019-input-limits-and-paging-order.md)).
+* **Health checks** for liveness and readiness, and **OpenTelemetry** traces and metrics ([ADR 0017](docs/adr/0017-operational-endpoints-and-telemetry.md)).
+* **Integration tests against a real SQL Server** in a container (Testcontainers), which run the migrations and the repository.
+* **Architecture decision records** in [`docs/adr`](docs/adr/README.md), with the reasons for each significant decision, including the accepted risk of anonymous access ([ADR 0016](docs/adr/0016-anonymous-access-for-the-assignment.md)).
+* **Code quality tooling:** an `.editorconfig`, code formatting checked with `dotnet format`, the build with warnings treated as errors, and central package management ([ADR 0013](docs/adr/0013-central-package-management.md)).
+* **Git hooks** with Husky.Net. Before each commit, the code is formatted and `THIRD-PARTY-NOTICES.md` is regenerated ([see below](#git-hooks)).
+* **Semantic versioning** calculated from the git history with GitVersion ([ADR 0020](docs/adr/0020-semantic-versioning-with-gitversion.md)).
+* **Continuous integration** on every pull request: formatting, build, a scan for vulnerable packages, a check that the notices are up to date, and the tests of the affected projects ([see below](#continuous-integration)).
+* **Licensing.** The project is MIT-licensed. `THIRD-PARTY-NOTICES.md` lists every package that ships with the API, with its licence and copyright notice, and it is generated from the dependencies.
+* **Pull request template**.
 
 ## Technologies
 
-* .NET 10 + ASP.NET Core
-* FastEndpoints — endpoint-per-class API design with validators and versioning
-* FluentValidation — request validation
-* FluentResults — expected failures returned from the repository
-* Mapster — DTO ↔ domain mapping (MIT-licensed)
-* Entity Framework Core + MS SQL Server — database storage
-* .NET Aspire — starts SQL Server in Docker for the database mode
-* NUnit, Moq, Testcontainers — unit and integration tests
+* .NET 10 and ASP.NET Core, C#
+* FastEndpoints: one class per endpoint, validators, versioning, and Swagger per version
+* FluentValidation: request validation
+* FluentResults: expected failures returned from the repository
+* Mapster: mapping of domain objects to DTOs (MIT-licensed)
+* Entity Framework Core and MS SQL Server: database storage
+* .NET Aspire: local orchestration of the API and SQL Server
+* NUnit, Moq, Testcontainers: unit and integration tests
+* Husky.Net and GitVersion: git hooks and versioning
 
-The main design decisions and their trade-offs are recorded in [`docs/adr`](docs/adr/README.md). Operating the API is described in [`docs/operations.md`](docs/operations.md).
+Design decisions and their trade-offs are recorded in [`docs/adr`](docs/adr/README.md).
 
 ## Architecture
 
@@ -37,17 +59,18 @@ The solution is split into layers. Dependencies point inwards.
 | Project | Responsibility |
 | --- | --- |
 | `Web.Api` | HTTP layer: endpoints (`Features/`), request and response models, validation, error responses, rate limiting, Swagger, and the composition root (`Program.cs`) |
-| `Web.Application` | Use-case contracts: `IProductRepository`, commands and queries (`CreateProductCommand`, `GetPagedProductsQuery`), `ProductFactory` with business rules, and the error types |
-| `Web.Domain` | The `Product` entity and the `ProductLimits` constants |
-| `Web.Infrastructure` | Data access: the EF Core repository and migrations, the in-memory mock repository, seed data, and service registration |
-| `Web.AppHost` | .NET Aspire host that starts the API and, in the database mode, SQL Server |
+| `Web.Application` | Use-case contracts: `IProductRepository`, commands and queries, `ProductFactory` with business rules, and the error types |
+| `Web.Domain` | The `Product` entity, the field limits (`ProductLimits`), and the image address rules (`ProductImageUri`) |
+| `Web.Infrastructure` | Data access: the EF Core repository and migrations, the mock repository, seed data, and service registration |
+| `Web.AppHost` | .NET Aspire host that starts the API and, in the `Database` mode, SQL Server |
 
 ## Prerequisites
 
 * [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-* Docker (only for the **database** data source, which starts SQL Server through .NET Aspire)
+* Docker, only for the **database** data source (SQL Server runs in a container through .NET Aspire)
+* Git, for the git hooks
 
-To install the prerequisites, you can use the `setup` script from the **scripts** folder. Run it from the root folder of this project:
+The `setup` script from the **scripts** folder installs the missing prerequisites, restores the packages and the local tools, and installs the git hooks. Run it from the root folder of this project:
 
 ```bash
 bash scripts/setup.sh            # Linux/macOS
@@ -63,18 +86,20 @@ The data source is set by the `DataSource` setting:
 
 | Value | Storage | Requirements |
 | --- | --- | --- |
-| `Mock` | In-memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
-| `Database` (default) | MS SQL Server, migrated and seeded on startup | Docker and the SQL password (see below) |
+| `Mock` | In memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
+| `Database` (default) | MS SQL Server, migrated and seeded on startup | Docker |
 
 ### Option 1: mock data (no database)
 
-Run the API project directly with `DataSource` set to `Mock`:
+Run the API project with `DataSource` set to `Mock`:
 
 ```bash
 DataSource=Mock dotnet run --project src/Web.Api
 ```
 
-With the `http` launch profile, Swagger UI is then available at **http://localhost:5211/swagger**.
+Swagger UI is then available at **http://localhost:5211/swagger**. The HTTPS profile of the launch settings uses **https://localhost:7252/swagger**.
+
+In the IDE, select the `http` or `https` profile of `Web.Api` and run it. The browser opens Swagger.
 
 ### Option 2: database through .NET Aspire
 
@@ -92,9 +117,9 @@ With the `http` launch profile, Swagger UI is then available at **http://localho
    dotnet run --project src/Web.AppHost/Web.AppHost.csproj
    ```
 
-   Aspire starts SQL Server and the API, applies the EF Core migrations, and seeds the sample products. The Aspire dashboard lists the `web-api` resource; its link opens Swagger UI.
+   Aspire starts SQL Server and the API, applies the EF Core migrations, and seeds the sample products. The Aspire dashboard (its URL is printed in the console) lists the `web-api` resource. The link of the resource opens Swagger UI.
 
-To run the **database** source without Aspire, set the connection string `ConnectionStrings__WebDb` (environment variable) and run the API with `DataSource=Database`. ASP.NET Core uses the `Production` environment unless `ASPNETCORE_ENVIRONMENT` is set, so set `ASPNETCORE_ENVIRONMENT=Development` for local development.
+**Troubleshooting:** SQL Server stores the `sa` password in its data volume when the volume is first created. If `sql-password` is changed later, the database stays unhealthy and the API does not start, with `Login failed for user 'sa'` in the SQL Server log. Either set the password back to the original value, or remove the volume and start again. The volume is named `web.apphost-<hash>-sql-data` (see `docker volume ls`). Removing it deletes the data.
 
 To run the **mock** source through Aspire, start the AppHost with `DataSource=Mock`. SQL Server is then not started and the password is not needed:
 
@@ -102,37 +127,9 @@ To run the **mock** source through Aspire, start the AppHost with `DataSource=Mo
 DataSource=Mock dotnet run --project src/Web.AppHost/Web.AppHost.csproj
 ```
 
-### Option 3: Docker image
+To run the **database** source without Aspire, set the connection string `ConnectionStrings__WebDb` (environment variable) and run the API with `DataSource=Database`. ASP.NET Core uses the `Production` environment unless `ASPNETCORE_ENVIRONMENT` is set, so set `ASPNETCORE_ENVIRONMENT=Development` for local development.
 
-The `Dockerfile` runs the Aspire AppHost in a container. The AppHost starts the API and, in the `Database` mode, SQL Server, so the whole environment comes up with one command. Docker is needed on the host.
-
-Build the image from the root folder of this project:
-
-```bash
-docker build -t web-api .
-```
-
-Run it. The AppHost needs the Docker socket to start the SQL Server container, and the SQL password is passed as an environment variable:
-
-```bash
-docker run --rm -it \
-  -p 8080:8080 -p 18888:18888 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  --add-host=host.docker.internal:host-gateway \
-  -e "Parameters__sql-password=<password>" \
-  web-api
-```
-
-* The API is at `http://localhost:8080`, and Swagger UI is at `http://localhost:8080/swagger`. If port 8080 is taken on the host, change the first number of `-p`.
-* The Aspire dashboard is at `http://localhost:18888`. The login link is printed in the console.
-* The SQL Server data is kept in a Docker volume that Aspire creates, not in the `sql-data` folder.
-* To run the mock source, add `-e DataSource=Mock`. No SQL Server container is started then, and the password is not needed.
-
-> **Security:** The Docker socket gives the container control of the Docker host, so run this image only on a machine you trust. The image runs the API in the Development environment: Swagger is enabled and the endpoints are anonymous (see [ADR 0016](docs/adr/0016-anonymous-access-for-the-assignment.md)). Do not publish its ports to untrusted networks.
-
-The image is for local runs and the assignment. It contains the SDK and the source, so it is not a production image. It was tested with Docker Desktop on macOS. On Linux, `host.docker.internal` is provided by the `--add-host` option above, but this has not been tested.
-
-## Unit and integration tests
+## Running the tests
 
 From the root folder of this project:
 
@@ -142,7 +139,7 @@ dotnet test
 
 Most tests do not need a database or Docker:
 
-* `Web.Api.Tests` calls the endpoints through `WebApplicationFactory` with a mocked repository, and checks validation, error responses, rate limits, health checks, and security headers.
+* `Web.Api.Tests` calls the endpoints through `WebApplicationFactory` with a mocked repository, and checks validation, error responses, rate limits, health checks, security headers, and the mapping.
 * `Web.Infrastructure.Tests` tests the EF Core repository (EF Core in-memory provider), the mock repository, and the data source registration.
 * `SqlServerProductRepositoryTests` runs the migrations and the repository against a real SQL Server in a container. It needs a running Docker daemon.
 
@@ -158,7 +155,7 @@ Most tests do not need a database or Docker:
 
 Examples are in [`src/Web.Api/Web.Api.http`](src/Web.Api/Web.Api.http).
 
-**Pagination:** `pageNumber` is zero-based and defaults to `0`. `pageSize` defaults to the configured default (`10`) and cannot exceed the configured maximum (`100`). To get all products, use `GET /v1/products`.
+**Pagination:** `pageNumber` is zero-based and optional, and it defaults to `0`. `pageSize` is optional, defaults to the configured default (`10`), and cannot exceed the configured maximum (`100`). To get all products, use `GET /v1/products`.
 
 **Create request:**
 
@@ -171,7 +168,9 @@ Examples are in [`src/Web.Api/Web.Api.http`](src/Web.Api/Web.Api.http).
 }
 ```
 
-`name`, `imgUri`, and a `price` greater than 0 are required. `description` is optional.
+`name`, `imgUri`, and a `price` greater than 0 are required. `imgUri` must be an absolute `http` or `https` address. `description` is optional, and it may be omitted or `null`.
+
+**Product response:** the dates are UTC with an explicit offset, for example `"createdAt": "2026-10-19T11:45:44.771147+00:00"`. The same format is used with the mock and the database data sources.
 
 ## Configuration
 
@@ -248,7 +247,7 @@ Web.slnx
 src/
   Web.Api/                 HTTP endpoints, models, validation, rate limiting, Swagger
   Web.Application/         Repository contract, commands, queries, business rules
-  Web.Domain/              Product entity and limits
+  Web.Domain/              Product entity, field limits, image address rules
   Web.Infrastructure/      EF Core, migrations, mock repository, seed data
   Web.AppHost/             .NET Aspire host (API + SQL Server)
 tests/
@@ -256,13 +255,37 @@ tests/
   Web.Infrastructure.Tests/
 docs/adr/                  Architecture decision records
 docs/operations.md         Running and operating the API
-scripts/                   Environment setup and notice generation scripts
+scripts/                   Setup, notice generation, and the pre-commit script
+.husky/                    Git hooks
 THIRD-PARTY-NOTICES.md     Licences of the third-party packages in the API
+GitVersion.yml             Versioning settings
 ```
+
+## Git hooks
+
+The git hooks are managed by [Husky.Net](https://alirezanet.github.io/Husky.Net/). The `setup` script installs them. To install them by hand, run `dotnet tool restore` and then `dotnet husky install` once after cloning the repository.
+
+The **pre-commit** hook runs `scripts/pre-commit.sh` before each commit. It:
+
+1. formats the solution with `dotnet format whitespace`;
+2. regenerates `THIRD-PARTY-NOTICES.md`;
+3. stages the files that were already staged, and the regenerated notices, so that the commit contains the formatted code.
+
+Files that were not staged are formatted in the working tree but are not added. On Windows, the hook needs Git Bash, which is installed with Git for Windows.
+
+## Versioning
+
+The version is calculated from the git history with GitVersion. The settings are in `GitVersion.yml`, and the tool is pinned in `.config/dotnet-tools.json`:
+
+```bash
+dotnet tool run dotnet-gitversion /showvariable FullSemVer
+```
+
+The first release is `1.0.0`. Commits on `main` are patch increments, and feature branches get the `alpha` label. A maintainer creates the release tag `vX.Y.Z` on `main`. See [ADR 0020](docs/adr/0020-semantic-versioning-with-gitversion.md).
 
 ## Third-party notices
 
-`THIRD-PARTY-NOTICES.md` lists every package that ships with the API, with its licence and copyright notice. Regenerate it after changing packages:
+`THIRD-PARTY-NOTICES.md` lists every package that ships with the API, with its licence and copyright notice. It is regenerated by the pre-commit hook, and it can be regenerated by hand:
 
 ```bash
 bash scripts/generate-third-party-notices.sh
@@ -289,12 +312,12 @@ Transitive packages can be pinned the same way. `Directory.Build.props` applies 
 
 The workflow `.github/workflows/pr-check.yml` runs on every pull request into `main` and has two jobs:
 
-* **quality** checks formatting (`dotnet format whitespace`), builds with warnings as errors, fails when a package has a known vulnerability, and fails when `THIRD-PARTY-NOTICES.md` is out of date.
+* **quality** calculates the version, checks formatting (`dotnet format whitespace`), builds with warnings as errors, fails when a package has a known vulnerability, and fails when `THIRD-PARTY-NOTICES.md` is out of date.
 * **affected-tests** finds the projects affected by the pull request with [dotnet-affected](https://github.com/leonardochaia/dotnet-affected), builds them, and runs the tests of the affected test projects. Unaffected tests are skipped, so a change to one part of the solution does not rerun everything.
 
 The workflow does not deploy anything.
 
-To run the same check locally against `main`:
+To run the same test selection locally against `main`:
 
 ```bash
 bash scripts/run-affected-tests.sh origin/main
@@ -312,6 +335,8 @@ The EF Core tools are a local tool of this repository (see `.config/dotnet-tools
 dotnet tool restore
 ConnectionStrings__WebDb="Server=localhost;Database=DesignTime;Trusted_Connection=True;TrustServerCertificate=True" dotnet tool run dotnet-ef migrations add <MigrationName> --project src/Web.Infrastructure --startup-project src/Web.Api --output-dir Migrations
 ```
+
+Existing migrations are never edited after they are applied. A schema change is always a new migration.
 
 ## Applying migrations in production
 

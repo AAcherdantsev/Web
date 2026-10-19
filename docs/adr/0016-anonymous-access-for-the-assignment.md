@@ -23,7 +23,6 @@ The service must not be exposed to untrusted networks in this form. Before any r
 * The assignment stays within its scope.
 * The risk is recorded here and in the security checklist of `docs/operations.md`, so that it is not forgotten when the service moves beyond the assignment.
 * Deployments follow the security checklist in `docs/operations.md`.
-* The Docker image (see the `Dockerfile` and the README) runs the AppHost in the Development environment, so Swagger is enabled and the endpoints are anonymous. The image is for local runs and the assignment, and its ports must not be published to untrusted networks.
 
 ## Alternatives considered
 

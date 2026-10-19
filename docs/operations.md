@@ -12,8 +12,6 @@ dotnet publish src/Web.Api -c Release -o publish
 
 The output folder contains `Web.Api.dll`, which runs with `dotnet publish/Web.Api.dll`. Use the same output for the migration step and for the running service.
 
-The `Dockerfile` in the repository runs the Aspire AppHost for local use, with SQL Server in a container. It is not a deployment image: it contains the SDK and the source, and it runs the API in the Development environment. See the README, "Option 3: Docker image".
-
 ## Configuration
 
 Settings are read from `appsettings.json`, then `appsettings.<Environment>.json`, then environment variables. Use environment variables for anything that differs between environments, and never put secrets in the appsettings files.
