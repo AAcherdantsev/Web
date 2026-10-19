@@ -1,6 +1,6 @@
 namespace Web.Application.Products;
 
-public class UpdateProductDescriptionCommand
+public record UpdateProductDescriptionCommand
 {
     /// <summary>
     ///     The unique identifier of the product.
