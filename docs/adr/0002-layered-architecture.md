@@ -12,7 +12,8 @@ The task requires a layered architecture and SOLID design. The HTTP framework, t
 The solution has four source projects with these dependencies:
 
 - `Web.Domain` depends on nothing. It contains the `Product` entity and the `ProductLimits` constants.
-- `Web.Application` depends on Domain. It defines the repository contract (`IProductRepository`), the commands and queries, the `ProductFactory` business rules, and the error types.
+- `Web.Application` depends on Domain. It contains the use cases (`IProductService` and `ProductService`), the business rules (`ProductRules` and `ProductFactory`), the commands and queries, the error types, and the repository contract (`IProductRepository`). The use cases get the current time from `TimeProvider`, so tests can control it.
+- The endpoints call the use cases only. They do not use the repository.
 - `Web.Infrastructure` depends on Application and Domain. It implements the repository with EF Core, provides the in-memory mock, and registers services.
 - `Web.Api` depends on Application and Domain. It also references Infrastructure, but only for the composition root: `Program.cs` and the registration extensions use it to register the data source, read the `DataSource` setting, and run the migration step. Endpoints do not use Infrastructure types.
 
@@ -20,7 +21,7 @@ The API never uses EF Core types directly, and the Application layer never refer
 
 ## Consequences
 
-- Business rules live in one place (`ProductFactory`) and are used by both the EF Core and the mock repositories.
+- Business rules live in the Application layer. Both the EF Core and the mock repositories only store products, so a rule cannot differ between the data sources.
 - The data source can be changed without touching the endpoints (see [0006](0006-selectable-data-source.md)).
 - The composition root is the place that knows about Infrastructure, which is the standard arrangement for ASP.NET Core applications.
 - `Product` is both the domain entity and the EF Core entity. A separate persistence model would add mapping code without a clear benefit for this CRUD scope. If the domain grows, this decision should be revisited.

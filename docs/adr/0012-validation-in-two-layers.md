@@ -10,7 +10,7 @@ Input can be wrong in two ways: it can have the wrong shape (a missing field, a 
 ## Decision
 
 - **HTTP layer.** FluentValidation validators (`Validator<T>` in FastEndpoints) check the request shape: required values, ranges, URI syntax, and the configured page size limit. They run before the endpoint, and a failure returns 400 with the errors listed (see [0009](0009-problem-details-for-errors.md)).
-- **Application layer.** `ProductFactory` checks the business rules when a product is created: name not blank, price not negative, image URI valid. Every repository uses it.
+- **Application layer.** `ProductRules` and `ProductFactory` check the business rules when a product is created: name not blank, price greater than 0 with at most two decimal places, an `http` or `https` image address, and the length limits. `ProductService` checks the description rules when a description changes. The use cases run for every data source, so no rule depends on the endpoint or the repository.
 
 Some checks exist in both layers. This is intentional: the HTTP validators give clients precise, field-level messages, and the factory protects the rules for any future caller that does not go through HTTP.
 

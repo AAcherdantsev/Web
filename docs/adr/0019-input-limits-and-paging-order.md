@@ -17,6 +17,7 @@ Three requirements shape the product data and the product list:
   * the request validators, which return a 400 with a field-level message;
   * the business rules in `ProductFactory`, which protect callers that do not use HTTP;
   * the database schema, through `HasMaxLength` in the `InitialCreate` migration, as a last line of defence.
+* **Prices** are greater than 0, have at most two decimal places, and are at most `9999999999999999.99`. This is the range of the `decimal(18,2)` column, so a price is never rounded or truncated when it is stored.
 * **Request body** size is limited to 64 KB (`Kestrel:Limits:MaxRequestBodySize`).
 * **Ordering** is `CreatedAt`, then `Id`. The second key makes the order total, so paging is stable.
 * **Index** on `(CreatedAt, Id)` supports that ordering.

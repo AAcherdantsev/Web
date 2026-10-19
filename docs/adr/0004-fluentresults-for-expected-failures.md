@@ -9,7 +9,7 @@ Some failures are expected and part of normal behaviour: a product does not exis
 
 ## Decision
 
-Repository methods return `Result<T>` from **FluentResults 4.0** for expected outcomes. A failure carries typed errors, such as `NotFoundError`, or plain messages, such as "Price cannot be negative.".
+The application services return `Result<T>` from **FluentResults 4.0** for expected outcomes. The repositories return the stored values, or `null` when a product is missing, and they throw on unexpected failures. A failure carries typed errors, such as `NotFoundError`, or plain messages, such as "Price cannot be negative.".
 
 Rules:
 

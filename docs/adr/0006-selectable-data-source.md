@@ -16,7 +16,7 @@ The `DataSource` setting selects the repository implementation:
 
 The value comes from configuration, so it can be set in `appsettings.json`, an environment variable, or the command line. The AppHost reads the same setting and starts SQL Server only in `Database` mode. An unknown value fails at startup with a clear message.
 
-Both repositories share the business rules through `ProductFactory` (see [0002](0002-layered-architecture.md)), so they behave the same way.
+Both repositories are used through the same application service, which applies the business rules (see [0002](0002-layered-architecture.md)), so they behave the same way.
 
 ## Consequences
 
