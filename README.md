@@ -70,24 +70,14 @@ The solution is split into layers. Dependencies point inwards.
 * Docker, only for the **database** data source (SQL Server runs in a container through .NET Aspire)
 * Git, for the git hooks
 
-The `setup` script from the **scripts** folder installs the missing prerequisites, restores the packages and the local tools, and installs the git hooks. Run it from the root folder of this project:
-
-```bash
-bash scripts/setup.sh            # Linux/macOS
-```
-
-```powershell
-.\scripts\setup.ps1              # Windows
-```
-
 ## Running the application
 
 The data source is set by the `DataSource` setting:
 
 | Value | Storage | Requirements |
 | --- | --- | --- |
-| `Mock` | In memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
-| `Database` (default) | MS SQL Server, migrated and seeded on startup | Docker |
+| `Mock` (default) | In memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
+| `Database` | MS SQL Server, migrated and seeded on startup | Docker |
 
 ### Option 1: mock data (no database)
 
