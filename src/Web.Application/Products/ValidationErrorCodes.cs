@@ -26,7 +26,9 @@ public static class ValidationErrorCodes
     public static readonly string ERROR_0010 = "The requested page is beyond the supported range.";
 
     public static readonly string ERROR_0011 =
-        $"The price must be at most {ProductPrice.MAX.ToString(CultureInfo.InvariantCulture)} and have at most 2 decimal places.";
+        $"The price must be at most {ProductPrice.MAX.ToString(CultureInfo.InvariantCulture)}";
+
+    public static readonly string ERROR_0012 = "The price must have at most 2 decimal places.";
 
     public static string ERROR_0009(int maxPageSize)
     {

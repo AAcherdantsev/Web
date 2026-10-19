@@ -79,8 +79,8 @@ public static class ProductValidationRules
                 .WithErrorCode(nameof(ERROR_0011))
                 .WithMessage(ERROR_0011)
                 .Must(ProductPrice.HasAtMostTwoDecimalPlaces)
-                .WithErrorCode(nameof(ERROR_0011))
-                .WithMessage(ERROR_0011);
+                .WithErrorCode(nameof(ERROR_0012))
+                .WithMessage(ERROR_0012);
         }
     }
 }
