@@ -15,6 +15,20 @@
         "dotnet-affected"
       ],
       "rollForward": false
+    },
+    "gitversion.tool": {
+      "version": "6.8.2",
+      "commands": [
+        "dotnet-gitversion"
+      ],
+      "rollForward": false
+    },
+    "husky": {
+      "version": "0.9.1",
+      "commands": [
+        "husky"
+      ],
+      "rollForward": false
     }
   }
 }

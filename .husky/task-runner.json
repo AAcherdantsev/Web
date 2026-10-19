@@ -1,0 +1,11 @@
+{
+   "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+   "tasks": [
+      {
+         "name": "format-and-notices",
+         "group": "pre-commit",
+         "command": "bash",
+         "args": [ "scripts/pre-commit.sh" ]
+      }
+   ]
+}

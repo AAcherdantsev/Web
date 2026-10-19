@@ -64,6 +64,10 @@ if (Test-Path $solution) {
     Write-Host "No .slnx file found. Skipping 'dotnet restore'." -ForegroundColor Yellow
 }
 
+# --- Install the local tools and the git hooks ---
+dotnet tool restore
+dotnet husky install
+
 Write-Host ""
 Write-Host "=== Setup complete! ===" -ForegroundColor Cyan
 Write-Host "If Docker was installed for the first time, please restart your computer." -ForegroundColor Yellow

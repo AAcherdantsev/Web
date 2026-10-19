@@ -75,6 +75,10 @@ else
     echo "No .slnx file found. Skipping 'dotnet restore'."
 fi
 
+# --- Install the local tools and the git hooks ---
+dotnet tool restore
+dotnet husky install
+
 echo
 echo "=== Setup complete! ==="
 echo "If Docker was installed for the first time, please restart your system."
