@@ -116,7 +116,7 @@ public class ErrorHandlingTests : IntegrationTestBase
     public async Task PatchProduct_WhenMissing_Returns404ProblemDetails()
     {
         // Arrange
-        ServiceMock.Setup(s => s.UpdateDescriptionAsync(999, "x", It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s => s.UpdateDescriptionAsync(new() { Id = 999, Description = "x"}, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
 
         // Act

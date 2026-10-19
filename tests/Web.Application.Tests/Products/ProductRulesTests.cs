@@ -1,33 +1,71 @@
 using System.Globalization;
+using FluentValidation;
+using FluentValidation.TestHelper;
 using Web.Application.Products;
 using Web.Domain.Entities;
 
 namespace Web.Application.Tests.Products;
 
 /// <summary>
-///     Tests the business rules of the product fields.
+///     Tests the business rules of the product fields using FluentValidation TestHelper.
 /// </summary>
 [TestFixture]
 public class ProductRulesTests
 {
+    public class ProductTestModel
+    {
+        public string? Name { get; set; }
+        public decimal Price { get; set; }
+        public string? ImgUri { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class ProductTestValidator : AbstractValidator<ProductTestModel>
+    {
+        public ProductTestValidator()
+        {
+            RuleFor(x => x.Name).ProductNameRules();
+            RuleFor(x => x.Price).ProductPriceRules();
+            RuleFor(x => x.ImgUri).ProductImageUrlRules();
+            RuleFor(x => x.Description).ProductDescriptionRules();
+        }
+    }
+
+    private ProductTestValidator _validator;
+
+    [SetUp]
+    public void Setup()
+    {
+        _validator = new ProductTestValidator();
+    }
+
     [TestCase(null)]
     [TestCase("")]
     [TestCase("   ")]
     public void ValidateName_WhenEmpty_Fails(string? name)
     {
-        Assert.That(ProductRules.ValidateName(name).IsFailed, Is.True);
+        var model = new ProductTestModel { Name = name };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldHaveValidationErrorFor(x => x.Name);
     }
 
     [Test]
     public void ValidateName_AtTheLimit_Succeeds()
     {
-        Assert.That(ProductRules.ValidateName(new('x', ProductLimits.MAX_NAME_LENGTH)).IsSuccess, Is.True);
+        var model = new ProductTestModel { Name = new string('x', ProductLimits.MAX_NAME_LENGTH) };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Name);
     }
 
     [Test]
     public void ValidateName_OneCharacterOverTheLimit_Fails()
     {
-        Assert.That(ProductRules.ValidateName(new('x', ProductLimits.MAX_NAME_LENGTH + 1)).IsFailed, Is.True);
+        var model = new ProductTestModel { Name = new string('x', ProductLimits.MAX_NAME_LENGTH + 1) };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldHaveValidationErrorFor(x => x.Name);
     }
 
     [TestCase("0")]
@@ -38,7 +76,10 @@ public class ProductRulesTests
     [TestCase("1e20")]
     public void ValidatePrice_WhenOutOfRule_Fails(string price)
     {
-        Assert.That(ProductRules.ValidatePrice(Parse(price)).IsFailed, Is.True);
+        var model = new ProductTestModel { Price = Parse(price) };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldHaveValidationErrorFor(x => x.Price);
     }
 
     [TestCase("0.01")]
@@ -47,7 +88,10 @@ public class ProductRulesTests
     [TestCase("9999999999999999.99")]
     public void ValidatePrice_WhenWithinRule_Succeeds(string price)
     {
-        Assert.That(ProductRules.ValidatePrice(Parse(price)).IsSuccess, Is.True);
+        var model = new ProductTestModel { Price = Parse(price) };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Price);
     }
 
     [TestCase("javascript:alert(1)")]
@@ -57,35 +101,47 @@ public class ProductRulesTests
     [TestCase(null)]
     public void ValidateImgUri_WhenNotHttpOrHttps_Fails(string? imgUri)
     {
-        Assert.That(ProductRules.ValidateImgUri(imgUri).IsFailed, Is.True);
+        var model = new ProductTestModel { ImgUri = imgUri };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldHaveValidationErrorFor(x => x.ImgUri);
     }
 
     [TestCase("https://example.com/a.jpg")]
     [TestCase("http://example.com/a.jpg")]
     public void ValidateImgUri_WhenHttpOrHttps_Succeeds(string imgUri)
     {
-        Assert.That(ProductRules.ValidateImgUri(imgUri).IsSuccess, Is.True);
+        var model = new ProductTestModel { ImgUri = imgUri };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.ImgUri);
     }
 
     [Test]
     public void ValidateImgUri_LongerThanTheLimit_Fails()
     {
-        string imgUri = "https://example.com/" + new string('a', ProductLimits.MAX_IMG_URI_LENGTH);
+        var model = new ProductTestModel { ImgUri = "https://example.com/" + new string('a', ProductLimits.MAX_IMG_URI_LENGTH) };
+        var result = _validator.TestValidate(model);
 
-        Assert.That(ProductRules.ValidateImgUri(imgUri).IsFailed, Is.True);
+        result.ShouldHaveValidationErrorFor(x => x.ImgUri);
     }
 
     [Test]
     public void ValidateDescription_WhenNull_Succeeds()
     {
-        Assert.That(ProductRules.ValidateDescription(null).IsSuccess, Is.True);
+        var model = new ProductTestModel { Description = null };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Description);
     }
 
     [Test]
     public void ValidateDescription_OneCharacterOverTheLimit_Fails()
     {
-        Assert.That(ProductRules.ValidateDescription(new('x', ProductLimits.MAX_DESCRIPTION_LENGTH + 1)).IsFailed,
-            Is.True);
+        var model = new ProductTestModel { Description = new string('x', ProductLimits.MAX_DESCRIPTION_LENGTH + 1) };
+        var result = _validator.TestValidate(model);
+
+        result.ShouldHaveValidationErrorFor(x => x.Description);
     }
 
     private static decimal Parse(string value)

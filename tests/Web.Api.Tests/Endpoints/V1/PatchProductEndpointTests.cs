@@ -5,6 +5,7 @@ using Moq;
 using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
 using Web.Application.Common.Errors;
+using Web.Application.Products;
 using Web.Domain.Entities;
 
 namespace Web.Api.Tests.Endpoints.V1;
@@ -16,7 +17,7 @@ public class PatchProductEndpointTests : IntegrationTestBase
     public async Task PatchProduct_ReturnsTheUpdatedProduct()
     {
         // Arrange
-        ServiceMock.Setup(s => s.UpdateDescriptionAsync(4, "New text", It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s => s.UpdateDescriptionAsync(new() { Id = 4, Description  = "New text" }, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Ok(TestProducts.Create(4, "Phone", 10, "New text")));
 
         // Act
@@ -36,14 +37,14 @@ public class PatchProductEndpointTests : IntegrationTestBase
             "{\"description\":null}");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        ServiceMock.Verify(s => s.UpdateDescriptionAsync(It.IsAny<int>(), It.IsAny<string?>(),
+        ServiceMock.Verify(s => s.UpdateDescriptionAsync(It.IsAny<UpdateProductDescriptionCommand>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Test]
     public async Task PatchProduct_WhenMissing_Returns404()
     {
-        ServiceMock.Setup(s => s.UpdateDescriptionAsync(4, "x", It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s => s.UpdateDescriptionAsync(new() { Id = 4, Description = "x"}, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
 
         HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",

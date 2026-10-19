@@ -1,7 +1,7 @@
 using System.Globalization;
 using Web.Domain.Entities;
 
-namespace Web.Api.Validation;
+namespace Web.Application.Products;
 
 public static class ValidationErrorCodes
 {

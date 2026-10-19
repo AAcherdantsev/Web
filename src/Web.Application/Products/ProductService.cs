@@ -1,4 +1,5 @@
 using FluentResults;
+using FluentValidation.Results;
 using Web.Application.Common;
 using Web.Application.Common.Errors;
 using Web.Application.Common.Repositories;
@@ -64,22 +65,23 @@ public sealed class ProductService : IProductService
     }
 
     /// <inheritdoc />
-    public async Task<Result<Product>> UpdateDescriptionAsync(int id, string? description,
+    public async Task<Result<Product>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command,
         CancellationToken cancellationToken)
     {
-        Result validation = ProductRules.ValidateDescription(description);
-        if (validation.IsFailed)
+        ValidationResult validation = await new UpdateProductDescriptionValidator().ValidateAsync(command, cancellationToken);
+
+        if (!validation.IsValid)
         {
-            return validation;
+            return Result.Fail(validation.Errors.Select(e => e.ErrorMessage));
         }
 
-        Product? product = await _repository.FindByIdAsync(id, cancellationToken);
+        Product? product = await _repository.FindByIdAsync(command.Id, cancellationToken);
         if (product is null)
         {
             return Result.Fail(new NotFoundError(PRODUCT_NOT_FOUND));
         }
 
-        product.ChangeDescription(description ?? string.Empty, _timeProvider.GetUtcNow());
+        product.ChangeDescription(command.Description ?? string.Empty, _timeProvider.GetUtcNow());
         await _repository.UpdateAsync(product, cancellationToken);
         return Result.Ok(product);
     }

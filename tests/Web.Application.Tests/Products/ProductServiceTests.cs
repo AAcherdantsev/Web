@@ -69,7 +69,7 @@ public class ProductServiceTests
         Product product = new("Phone", "https://example.com/p.jpg", 10, "old", Now.AddDays(-1));
         _repository.Setup(r => r.FindByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(product);
 
-        Result<Product> result = await _service.UpdateDescriptionAsync(1, "new", CancellationToken.None);
+        Result<Product> result = await _service.UpdateDescriptionAsync(new () { Id = 1, Description = "new"}, CancellationToken.None);
 
         Assert.That(result.Value.Description, Is.EqualTo("new"));
         Assert.That(result.Value.LastUpdatedAt, Is.EqualTo(Now));
@@ -82,7 +82,7 @@ public class ProductServiceTests
         Product product = new("Phone", "https://example.com/p.jpg", 10, "old", Now);
         _repository.Setup(r => r.FindByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(product);
 
-        Result<Product> result = await _service.UpdateDescriptionAsync(1, null, CancellationToken.None);
+        Result<Product> result = await _service.UpdateDescriptionAsync(new() { Id = 1, Description = null}, CancellationToken.None);
 
         Assert.That(result.Value.Description, Is.Empty);
     }
@@ -92,7 +92,7 @@ public class ProductServiceTests
     {
         string tooLong = new('x', ProductLimits.MAX_DESCRIPTION_LENGTH + 1);
 
-        Result<Product> result = await _service.UpdateDescriptionAsync(1, tooLong, CancellationToken.None);
+        Result<Product> result = await _service.UpdateDescriptionAsync(new() { Id = 1, Description = tooLong}, CancellationToken.None);
 
         Assert.That(result.IsFailed, Is.True);
         _repository.Verify(r => r.FindByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -103,7 +103,7 @@ public class ProductServiceTests
     {
         _repository.Setup(r => r.FindByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync((Product?) null);
 
-        Result<Product> result = await _service.UpdateDescriptionAsync(9, "text", CancellationToken.None);
+        Result<Product> result = await _service.UpdateDescriptionAsync(new() { Id = 9, Description = "text"}, CancellationToken.None);
 
         Assert.That(result.HasError<NotFoundError>(), Is.True);
         _repository.Verify(r => r.UpdateAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);

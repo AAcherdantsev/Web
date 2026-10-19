@@ -1,5 +1,5 @@
 using FastEndpoints;
-using Web.Api.Validation;
+using Web.Application.Products;
 
 namespace Web.Api.Features.Products.CreateProduct;
 

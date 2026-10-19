@@ -1,4 +1,5 @@
 using FluentResults;
+using FluentValidation.Results;
 using Web.Domain.Entities;
 
 namespace Web.Application.Products;
@@ -16,15 +17,11 @@ public static class ProductFactory
     /// <returns>A successful result with the new product, or a failed result with the first broken rule.</returns>
     public static Result<Product> Create(CreateProductCommand command, DateTimeOffset createdAt)
     {
-        Result check = Result.Merge(
-            ProductRules.ValidateName(command.Name),
-            ProductRules.ValidatePrice(command.Price),
-            ProductRules.ValidateImgUri(command.ImgUri),
-            ProductRules.ValidateDescription(command.Description));
+        ValidationResult validation = new CreateProductCommandValidator().Validate(command);
 
-        if (check.IsFailed)
+        if (!validation.IsValid)
         {
-            return check;
+            return Result.Fail(validation.Errors.Select(e => e.ErrorMessage));
         }
 
         return Result.Ok(new Product(

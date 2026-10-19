@@ -2,7 +2,7 @@ using FastEndpoints;
 using FluentValidation;
 using Microsoft.Extensions.Options;
 using Web.Api.Configuration;
-using Web.Api.Validation;
+using Web.Application.Products;
 
 namespace Web.Api.Features.Products.GetPagedProductList;
 
@@ -19,10 +19,10 @@ public sealed class GetPagedProductListRequestValidator : Validator<GetPagedProd
     {
         // The offset of a page is an int in the database query, so the page must start inside the int range
         RuleFor(x => x.PageNumber)
-            .PageNumberRules(pagination, x => x.PageSize);
+            .PageNumberRules(pagination.Value.DefaultPageSize, x => x.PageSize);
 
         // A missing page size falls back to the configured default, so only a supplied value is checked
-        RuleFor(x => x.PageSize).PageSizeRules(pagination)
+        RuleFor(x => x.PageSize).PageSizeRules(pagination.Value.MaxPageSize)
             .When(x => x.PageSize.HasValue);
     }
 }
