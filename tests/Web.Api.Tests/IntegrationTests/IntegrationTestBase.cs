@@ -4,18 +4,22 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using Web.Application.Common.Repositories;
+using Web.Application.Products;
 
 namespace Web.Api.Tests.IntegrationTests;
 
+/// <summary>
+///     Starts the API in memory, with the product service replaced by a mock, so that the HTTP layer is tested alone.
+/// </summary>
 public abstract class IntegrationTestBase : IDisposable
 {
     protected readonly HttpClient Client;
     protected readonly WebApplicationFactory<Program> Factory;
-    protected readonly Mock<IProductRepository> RepositoryMock;
+    protected readonly Mock<IProductService> ServiceMock;
 
-    public IntegrationTestBase()
+    protected IntegrationTestBase()
     {
-        RepositoryMock = new();
+        ServiceMock = new();
 
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -33,11 +37,9 @@ public abstract class IntegrationTestBase : IDisposable
                         services.Remove(service);
                     }
 
-                    // Remove the existing services
-                    services.RemoveAll(typeof(IProductRepository));
-
-                    // Add mocked services
-                    services.AddSingleton(RepositoryMock.Object);
+                    services.RemoveAll<IProductRepository>();
+                    services.RemoveAll<IProductService>();
+                    services.AddSingleton(ServiceMock.Object);
                 });
             });
 
@@ -46,14 +48,27 @@ public abstract class IntegrationTestBase : IDisposable
 
     public void Dispose()
     {
-        Client?.Dispose();
-        Factory?.Dispose();
+        Client.Dispose();
+        Factory.Dispose();
     }
 
     [SetUp]
     public void ResetMocks()
     {
         // NUnit reuses the fixture instance for all tests, so clear setups and recorded calls between tests
-        RepositoryMock.Reset();
+        ServiceMock.Reset();
+    }
+
+    /// <summary>
+    ///     Sends a JSON body with the given method.
+    /// </summary>
+    protected Task<HttpResponseMessage> SendJsonAsync(HttpMethod method, string url, string json)
+    {
+        HttpRequestMessage request = new(method, url)
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+        };
+        request.Headers.Accept.Add(new("application/json"));
+        return Client.SendAsync(request);
     }
 }

@@ -1,7 +1,10 @@
+using System.Net;
+using System.Text.Json;
 using FluentResults;
 using Moq;
+using Web.Application.Common.Errors;
 using Web.Api.Tests.IntegrationTests;
-using Web.Domain.Entities;
+using Web.Api.Tests.TestData;
 
 namespace Web.Api.Tests.Endpoints.V1;
 
@@ -9,29 +12,34 @@ namespace Web.Api.Tests.Endpoints.V1;
 public class GetProductEndpointTests : IntegrationTestBase
 {
     [Test]
-    public async Task GetProduct_ReturnsProduct_WhenRepositoryIsSuccessful()
+    public async Task GetProduct_ReturnsTheProductAsJson()
     {
         // Arrange
-        int productId = 1;
-        Product domainProduct = new()
-        {
-            Id = productId,
-            Name = "Test Product",
-            ImgUri = "http://image",
-            Price = 10,
-            Description = "desc",
-            CreatedAt = DateTimeOffset.UtcNow,
-            LastUpdatedAt = DateTimeOffset.UtcNow
-        };
-
-        RepositoryMock.Setup(r => r.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok(domainProduct));
+        ServiceMock.Setup(s => s.GetByIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok(TestProducts.Create(3, "Phone", 99.5m, "A phone")));
 
         // Act
-        HttpResponseMessage response = await Client.GetAsync($"/v1/products/{productId}");
+        HttpResponseMessage response = await Client.GetAsync("/v1/products/3");
+        using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         // Assert
-        Assert.IsTrue(response.IsSuccessStatusCode);
-        RepositoryMock.Verify(r => r.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        JsonElement root = document.RootElement;
+        Assert.That(root.GetProperty("id").GetInt32(), Is.EqualTo(3));
+        Assert.That(root.GetProperty("name").GetString(), Is.EqualTo("Phone"));
+        Assert.That(root.GetProperty("price").GetDecimal(), Is.EqualTo(99.5m));
+        Assert.That(root.GetProperty("description").GetString(), Is.EqualTo("A phone"));
+        Assert.That(root.GetProperty("imgUri").GetString(), Is.EqualTo("https://example.com/p.jpg"));
+    }
+
+    [Test]
+    public async Task GetProduct_WhenMissing_Returns404()
+    {
+        ServiceMock.Setup(s => s.GetByIdAsync(3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<Domain.Entities.Product>(new NotFoundError("Product not found.")));
+
+        HttpResponseMessage response = await Client.GetAsync("/v1/products/3");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 }

@@ -1,10 +1,9 @@
 using FastEndpoints;
-using FluentResults;
 using Mapster;
 using Web.Api.Configuration.RateLimiting;
 using Web.Api.Extensions;
 using Web.Api.Models;
-using Web.Application.Common.Repositories;
+using Web.Application.Products;
 using Web.Domain.Entities;
 
 namespace Web.Api.Features.Products.GetAllProducts;
@@ -14,15 +13,15 @@ namespace Web.Api.Features.Products.GetAllProducts;
 /// </summary>
 public sealed class GetAllProductsEndpoint : EndpointWithoutRequest<List<ProductDto>>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="GetAllProductsEndpoint" /> class.
     /// </summary>
-    /// <param name="productRepository">The repository used to access product data.</param>
-    public GetAllProductsEndpoint(IProductRepository productRepository)
+    /// <param name="productService">The product service used to access product data.</param>
+    public GetAllProductsEndpoint(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     /// <summary>
@@ -48,14 +47,8 @@ public sealed class GetAllProductsEndpoint : EndpointWithoutRequest<List<Product
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        Result<IEnumerable<Product>> result = await _productRepository.GetAllProductsAsync(ct);
+        IReadOnlyList<Product> products = await _productService.GetAllAsync(ct);
 
-        // Listing has no expected failure, so a failed result is an unexpected error (HTTP 500).
-        if (!result.IsSuccess)
-        {
-            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Message)));
-        }
-
-        await Send.ResponseAsync(result.Value.Adapt<List<ProductDto>>(), cancellation: ct);
+        await Send.ResponseAsync(products.Adapt<List<ProductDto>>(), cancellation: ct);
     }
 }

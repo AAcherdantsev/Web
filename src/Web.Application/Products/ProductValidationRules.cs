@@ -1,12 +1,10 @@
 using FluentValidation;
-using Microsoft.Extensions.Options;
-using Web.Api.Configuration;
 using Web.Domain.Entities;
-using static Web.Api.Validation.ValidationErrorCodes;
+using static Web.Application.Products.ValidationErrorCodes;
 
-namespace Web.Api.Validation;
+namespace Web.Application.Products;
 
-public static class ValidationExtensions
+public static class ProductValidationRules
 {
     extension<T>(IRuleBuilder<T, string?> ruleBuilder)
     {
@@ -44,7 +42,8 @@ public static class ValidationExtensions
 
     extension<T>(IRuleBuilder<T, int?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int?> PageNumberRules(IOptions<PaginationOptions> pagination, Func<T, int?> pageSizeSelector)
+        public IRuleBuilderOptions<T, int?> PageNumberRules(int defaultPageSize,
+            Func<T, int?> pageSizeSelector)
         {
             return ruleBuilder
                 .GreaterThanOrEqualTo(0)
@@ -52,7 +51,7 @@ public static class ValidationExtensions
                 .WithMessage(ERROR_0008)
                 .Must((request, pageNumber) =>
                     (long) (pageNumber ?? 0) *
-                    (pageSizeSelector(request) ?? pagination.Value.DefaultPageSize)
+                    (pageSizeSelector(request) ?? defaultPageSize)
                     <= int.MaxValue)
                 .WithErrorCode(nameof(ERROR_0010))
                 .WithMessage(ERROR_0010);
@@ -61,11 +60,11 @@ public static class ValidationExtensions
 
     extension<T>(IRuleBuilder<T, int?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int?> PageSizeRules(IOptions<PaginationOptions> pagination)
+        public IRuleBuilderOptions<T, int?> PageSizeRules(int maxPageSize)
         {
-            return ruleBuilder.InclusiveBetween(1, pagination.Value.MaxPageSize)
+            return ruleBuilder.InclusiveBetween(1, maxPageSize)
                 .WithErrorCode(nameof(ERROR_0009))
-                .WithMessage(ERROR_0009(pagination.Value.MaxPageSize));
+                .WithMessage(ERROR_0009(maxPageSize));
         }
     }
 
@@ -75,7 +74,13 @@ public static class ValidationExtensions
         {
             return ruleBuilder.GreaterThan(0)
                 .WithErrorCode(nameof(ERROR_0003))
-                .WithMessage(ERROR_0003);
+                .WithMessage(ERROR_0003)
+                .LessThanOrEqualTo(ProductPrice.MAX)
+                .WithErrorCode(nameof(ERROR_0011))
+                .WithMessage(ERROR_0011)
+                .Must(ProductPrice.HasAtMostTwoDecimalPlaces)
+                .WithErrorCode(nameof(ERROR_0012))
+                .WithMessage(ERROR_0012);
         }
     }
 }

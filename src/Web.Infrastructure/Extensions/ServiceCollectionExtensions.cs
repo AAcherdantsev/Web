@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Web.Application.Common.Repositories;
 using Web.Infrastructure.Configurations;
@@ -31,6 +32,8 @@ public static class ServiceCollectionExtensions
     public static void AddRepository(this IHostApplicationBuilder builder)
     {
         DataSource dataSource = GetDataSource(builder.Configuration);
+
+        builder.Services.TryAddSingleton(TimeProvider.System);
 
         if (dataSource == DataSource.Mock)
         {

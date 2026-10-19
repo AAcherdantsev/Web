@@ -6,7 +6,6 @@ using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Features.Products.GetProduct;
 using Web.Api.Models;
-using Web.Application.Common.Repositories;
 using Web.Application.Products;
 using Web.Domain.Entities;
 
@@ -17,15 +16,15 @@ namespace Web.Api.Features.Products.CreateProduct;
 /// </summary>
 public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, ProductDto>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="CreateProductEndpoint" /> class.
     /// </summary>
-    /// <param name="productRepository">The repository used to create and store product data.</param>
-    public CreateProductEndpoint(IProductRepository productRepository)
+    /// <param name="productService">The product service used to create and store product data.</param>
+    public CreateProductEndpoint(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     /// <summary>
@@ -73,7 +72,7 @@ public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, Produ
             Description = req.Description
         };
 
-        Result<Product> result = await _productRepository.CreateProductAsync(command, ct);
+        Result<Product> result = await _productService.CreateAsync(command, ct);
 
         if (result.IsFailed)
         {

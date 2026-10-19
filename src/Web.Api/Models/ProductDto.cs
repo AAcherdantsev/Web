@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Web.Api.Models;
 
 /// <summary>
@@ -8,6 +10,7 @@ public sealed class ProductDto
     /// <summary>
     ///     The unique identifier of the product.
     /// </summary>
+    [Required]
     public int Id { get; init; }
 
     /// <summary>
@@ -23,6 +26,7 @@ public sealed class ProductDto
     /// <summary>
     ///     The price of the product.
     /// </summary>
+    [Required]
     public decimal Price { get; init; }
 
     /// <summary>

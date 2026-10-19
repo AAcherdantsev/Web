@@ -4,8 +4,11 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Web.Api.Configuration;
+using Web.Api.Errors;
+using Web.Application.Products;
 using Web.Infrastructure.Configurations;
 using Web.Infrastructure.Services;
+using ProblemDetails = Microsoft.AspNetCore.Mvc.ProblemDetails;
 
 namespace Web.Api.Extensions;
 
@@ -31,6 +34,14 @@ public static class ServiceCollectionExtensions
 
     extension(WebApplicationBuilder builder)
     {
+        /// <summary>
+        ///     Registers the product use cases. The time source is registered by the infrastructure.
+        /// </summary>
+        public void AddProductServices()
+        {
+            builder.Services.AddScoped<IProductService, ProductService>();
+        }
+
         public void AddPaginationOptions()
         {
             builder.Services.AddOptions<PaginationOptions>()
@@ -66,8 +77,28 @@ public static class ServiceCollectionExtensions
         {
             app.UseFastEndpoints(c =>
             {
-                // Validation and other error responses use RFC 7807 problem details
-                c.Errors.UseProblemDetails();
+                c.Errors.ResponseBuilder = (failures, context, statusCode) =>
+                {
+                    ProblemDetails problemDetails = new()
+                    {
+                        Type = ProblemResults.BAD_REQUEST_TYPE,
+                        Title = "Bad Request",
+                        Status = statusCode,
+                        Instance = context.Request.Path,
+                        Detail = failures.FirstOrDefault()?.ErrorMessage,
+                        Extensions =
+                        {
+                            ["traceId"] = context.TraceIdentifier,
+                            ["errors"] = failures.Select(f => new
+                            {
+                                name = f.PropertyName, reason = f.ErrorMessage, code = f.ErrorCode
+                            })
+                        }
+                    };
+
+                    return problemDetails;
+                };
+
                 c.Versioning.Prefix = "v";
                 c.Versioning.PrependToRoute = true;
             });

@@ -1,10 +1,8 @@
-using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Testcontainers.MsSql;
 using Web.Application.Common;
-using Web.Application.Products;
 using Web.Domain.Entities;
 using Web.Infrastructure.Persistence;
 using Web.Infrastructure.Persistence.Repositories;
@@ -13,11 +11,14 @@ namespace Web.Infrastructure.Tests.Persistence.SqlServer;
 
 /// <summary>
 ///     Runs the product repository and the migrations against a real SQL Server container.
-///     Needs a running Docker daemon.
+///     Needs a running Docker daemon, so the tests are in the <c>Docker</c> category.
 /// </summary>
 [TestFixture]
+[Category("Docker")]
 public class SqlServerProductRepositoryTests
 {
+    private static readonly DateTimeOffset Created = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     private MsSqlContainer _container = null!;
     private DatabaseContext _context = null!;
     private ProductRepository _repository = null!;
@@ -52,20 +53,12 @@ public class SqlServerProductRepositoryTests
     }
 
     [Test]
-    public async Task GetAllProductsAsync_PagesWithoutDuplicatesOrGaps_WhenCreatedAtIsEqual()
+    public async Task GetPagedAsync_PagesWithoutDuplicatesOrGaps_WhenCreatedAtIsEqual()
     {
         // Arrange: identical timestamps make the ordering depend on the ID tie-breaker
-        DateTimeOffset createdAt = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         for (int i = 1; i <= 5; i++)
         {
-            _context.Products.Add(new()
-            {
-                Name = $"Product {i}",
-                ImgUri = "https://example.com/p.jpg",
-                Price = i,
-                CreatedAt = createdAt,
-                LastUpdatedAt = createdAt
-            });
+            _context.Products.Add(new($"Product {i}", "https://example.com/p.jpg", i, "", Created));
         }
 
         await _context.SaveChangesAsync();
@@ -75,9 +68,8 @@ public class SqlServerProductRepositoryTests
         List<int> ids = [];
         for (int page = 0; page < 3; page++)
         {
-            Result<PagedList<Product>> result = await _repository.GetAllProductsAsync(
-                new() { PageNumber = page, PageSize = 2 }, CancellationToken.None);
-            ids.AddRange(result.Value.Values.Select(p => p.Id));
+            PagedList<Product> result = await _repository.GetPagedAsync(page, 2, CancellationToken.None);
+            ids.AddRange(result.Values.Select(p => p.Id));
         }
 
         // Assert
@@ -87,21 +79,15 @@ public class SqlServerProductRepositoryTests
     }
 
     [Test]
-    public async Task CreateProductAsync_PersistsTheProduct()
+    public async Task AddAsync_PersistsTheProduct()
     {
         // Arrange
-        CreateProductCommand command = new()
-        {
-            Name = "Real database",
-            ImgUri = "https://example.com/db.jpg",
-            Price = 42.5m,
-            Description = "Stored in SQL Server"
-        };
+        Product product = new("Real database", "https://example.com/db.jpg", 42.5m, "Stored in SQL Server", Created);
 
         // Act
-        Result<Product> result = await _repository.CreateProductAsync(command, CancellationToken.None);
+        await _repository.AddAsync(product, CancellationToken.None);
         _context.ChangeTracker.Clear();
-        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == result.Value.Id);
+        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == product.Id);
 
         // Assert
         Assert.That(stored.Name, Is.EqualTo("Real database"));
@@ -109,17 +95,19 @@ public class SqlServerProductRepositoryTests
     }
 
     [Test]
-    public async Task UpdateProductDescriptionAsync_PersistsTheChange()
+    public async Task UpdateAsync_PersistsTheChange()
     {
         // Arrange
-        Result<Product> created = await _repository.CreateProductAsync(
-            new() { Name = "Update me", ImgUri = "https://example.com/u.jpg", Price = 1 }, CancellationToken.None);
+        Product product = new("Update me", "https://example.com/u.jpg", 1, "", Created);
+        await _repository.AddAsync(product, CancellationToken.None);
         _context.ChangeTracker.Clear();
+        Product tracked = (await _repository.FindByIdAsync(product.Id, CancellationToken.None))!;
 
         // Act
-        await _repository.UpdateProductDescriptionAsync(created.Value.Id, "Changed", CancellationToken.None);
+        tracked.ChangeDescription("Changed", Created.AddDays(1));
+        await _repository.UpdateAsync(tracked, CancellationToken.None);
         _context.ChangeTracker.Clear();
-        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == created.Value.Id);
+        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == product.Id);
 
         // Assert
         Assert.That(stored.Description, Is.EqualTo("Changed"));
@@ -144,6 +132,17 @@ public class SqlServerProductRepositoryTests
     }
 
     [Test]
+    public async Task Schema_StoresPriceWithTwoDecimalPlaces()
+    {
+        int scale = await _context.Database
+            .SqlQuery<int>(
+                $"SELECT CAST(NUMERIC_SCALE AS int) AS [Value] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Products' AND COLUMN_NAME = 'Price'")
+            .SingleAsync();
+
+        Assert.That(scale, Is.EqualTo(2));
+    }
+
+    [Test]
     public void Schema_RejectsANameLongerThanTheLimit()
     {
         // Act & Assert: the database enforces the limit even if a caller bypasses the validators
@@ -156,20 +155,19 @@ public class SqlServerProductRepositoryTests
     }
 
     [Test]
-    public async Task CreateProductAsync_ReadsTimestampsWithUtcOffset()
+    public async Task AddAsync_ReadsTimestampsWithUtcOffset()
     {
         // Arrange
+        Product product = new("Offset", "https://example.com/o.jpg", 1, "", DateTimeOffset.UtcNow);
         DateTimeOffset before = DateTimeOffset.UtcNow;
 
         // Act
-        Result<Product> result = await _repository.CreateProductAsync(
-            new() { Name = "Offset", ImgUri = "https://example.com/o.jpg", Price = 1 }, CancellationToken.None);
+        await _repository.AddAsync(product, CancellationToken.None);
         _context.ChangeTracker.Clear();
-        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == result.Value.Id);
+        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == product.Id);
 
-        // Assert: a datetime2 column would read back without an offset, which would serialize without the Z suffix
+        // Assert: a datetime2 column would read back without an offset, which would serialize without the offset
         Assert.That(stored.CreatedAt.Offset, Is.EqualTo(TimeSpan.Zero));
         Assert.That(stored.CreatedAt, Is.GreaterThanOrEqualTo(before.AddSeconds(-1)));
-        Assert.That(stored.Description, Is.Empty);
     }
 }

@@ -34,7 +34,7 @@ public static class DatabaseInitializer
 
         if (addProductExamples)
         {
-            await AddProductExamplesAsync(context);
+            await AddProductExamplesAsync(context, scope.ServiceProvider.GetRequiredService<TimeProvider>());
         }
     }
 
@@ -78,14 +78,14 @@ public static class DatabaseInitializer
     ///     Adds example products to the database if none exist.
     /// </summary>
     /// <param name="context">The database context.</param>
-    private static async Task AddProductExamplesAsync(DatabaseContext context)
+    private static async Task AddProductExamplesAsync(DatabaseContext context, TimeProvider timeProvider)
     {
         if (context.Products.Any())
         {
             return;
         }
 
-        context.Products.AddRange(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow));
+        context.Products.AddRange(ProductSeedData.CreateProducts(timeProvider.GetUtcNow()));
         await context.SaveChangesAsync();
     }
 }

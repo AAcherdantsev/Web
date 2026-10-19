@@ -8,11 +8,6 @@ public sealed class ProductGroup : Group
 
     public ProductGroup()
     {
-        Configure($"/{ENDPOINT_GROUP_PRODUCTS}", ep =>
-        {
-            ep.AllowAnonymous();
-        });
+        Configure($"/{ENDPOINT_GROUP_PRODUCTS}", ep => { ep.AllowAnonymous(); });
     }
-
 }
-

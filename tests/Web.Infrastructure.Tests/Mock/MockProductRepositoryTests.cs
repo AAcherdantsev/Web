@@ -1,145 +1,92 @@
-using FluentResults;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Web.Application.Common;
-using Web.Application.Common.Errors;
-using Web.Application.Products;
 using Web.Domain.Entities;
 using Web.Infrastructure.Mock;
 
 namespace Web.Infrastructure.Tests.Mock;
 
 /// <summary>
-///     Unit tests for the in-memory <see cref="MockProductRepository" />.
+///     Tests the in-memory product store used by the Mock data source.
 /// </summary>
 [TestFixture]
 public class MockProductRepositoryTests
 {
+    private MockProductRepository _repository = null!;
+
     [SetUp]
     public void SetUp()
     {
-        _repository = new(new Mock<ILogger<MockProductRepository>>().Object);
-    }
-
-    private MockProductRepository _repository;
-
-    [Test]
-    public async Task GetAllProductsAsync_ReturnsSeedData()
-    {
-        // Act
-        Result<IEnumerable<Product>> result = await _repository.GetAllProductsAsync(CancellationToken.None);
-
-        // Assert
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value.Count(), Is.EqualTo(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
+        FakeTimeProvider timeProvider = new(new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero));
+        _repository = new(new Mock<ILogger<MockProductRepository>>().Object, timeProvider);
     }
 
     [Test]
-    public async Task GetAllProductsAsync_WithPagination_ReturnsRequestedPage()
+    public async Task GetAllAsync_ReturnsSeedProducts()
     {
-        // Arrange
-        GetPagedProductsQuery query = new() { PageNumber = 1, PageSize = 4 };
+        IReadOnlyList<Product> products = await _repository.GetAllAsync(CancellationToken.None);
 
-        // Act
-        Result<PagedList<Product>> result = await _repository.GetAllProductsAsync(query, CancellationToken.None);
-
-        // Assert
-        int total = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count;
-        Assert.That(result.Value.TotalCount, Is.EqualTo(total));
-        Assert.That(result.Value.Values, Has.Count.EqualTo(total - 4));
+        Assert.That(products, Has.Count.EqualTo(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
     }
 
     [Test]
-    public async Task GetProductByIdAsync_WithSeedProduct_ReturnsProduct()
+    public async Task GetPagedAsync_ReturnsRequestedPage()
     {
-        // Act
-        Result<Product> result = await _repository.GetProductByIdAsync(1, CancellationToken.None);
+        PagedList<Product> page = await _repository.GetPagedAsync(1, 5, CancellationToken.None);
 
-        // Assert
-        Assert.That(result.IsSuccess, Is.True);
-        Assert.That(result.Value.Id, Is.EqualTo(1));
+        Assert.That(page.Values, Has.Count.EqualTo(5));
+        Assert.That(page.Values.First().Id, Is.EqualTo(6));
+        Assert.That(page.TotalCount, Is.EqualTo(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
     }
 
     [Test]
-    public async Task GetProductByIdAsync_WithUnknownId_ReturnsNotFoundError()
+    public async Task FindByIdAsync_WithSeedProduct_ReturnsProduct()
     {
-        // Act
-        Result<Product> result = await _repository.GetProductByIdAsync(999, CancellationToken.None);
+        Product? product = await _repository.FindByIdAsync(1, CancellationToken.None);
 
-        // Assert
-        Assert.That(result.IsFailed, Is.True);
-        Assert.That(result.Errors.First(), Is.TypeOf<NotFoundError>());
+        Assert.That(product?.Name, Is.EqualTo("iPhone 18 Pro"));
     }
 
     [Test]
-    public async Task CreateProductAsync_AssignsNextIdAndStoresProduct()
+    public async Task FindByIdAsync_WithUnknownId_ReturnsNull()
     {
-        // Arrange
-        CreateProductCommand command = new()
-        {
-            Name = "Mock Product",
-            ImgUri = "https://example.com/mock.jpg",
-            Price = 5
-        };
+        Product? product = await _repository.FindByIdAsync(999, CancellationToken.None);
 
-        // Act
-        Result<Product> created = await _repository.CreateProductAsync(command, CancellationToken.None);
-        Result<Product> fetched = await _repository.GetProductByIdAsync(created.Value.Id, CancellationToken.None);
-
-        // Assert
-        Assert.That(created.IsSuccess, Is.True);
-        Assert.That(created.Value.Id, Is.GreaterThan(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
-        Assert.That(fetched.Value.Name, Is.EqualTo("Mock Product"));
+        Assert.That(product, Is.Null);
     }
 
     [Test]
-    public async Task CreateProductAsync_WithInvalidCommand_ReturnsFailure()
+    public async Task AddAsync_AssignsNextIdAndStoresProduct()
     {
-        // Arrange
-        CreateProductCommand command = new() { Name = "", ImgUri = "https://example.com/mock.jpg", Price = 5 };
+        Product product = new("New", "https://example.com/n.jpg", 1, "", DateTimeOffset.UtcNow);
+        int seedCount = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count;
 
-        // Act
-        Result<Product> result = await _repository.CreateProductAsync(command, CancellationToken.None);
+        await _repository.AddAsync(product, CancellationToken.None);
 
-        // Assert
-        Assert.That(result.IsFailed, Is.True);
-        Assert.That(result.Errors.First().Message, Is.EqualTo("Name cannot be empty."));
+        Assert.That(product.Id, Is.EqualTo(seedCount + 1));
+        Assert.That((await _repository.FindByIdAsync(product.Id, CancellationToken.None))?.Name, Is.EqualTo("New"));
     }
 
     [Test]
-    public async Task UpdateProductDescriptionAsync_UpdatesStoredProduct()
+    public async Task UpdateAsync_StoresTheChangedDescription()
     {
-        // Act
-        Result<Product> updated = await _repository.UpdateProductDescriptionAsync(2, "Changed", CancellationToken.None);
-        Result<Product> fetched = await _repository.GetProductByIdAsync(2, CancellationToken.None);
+        Product product = (await _repository.FindByIdAsync(2, CancellationToken.None))!;
+        product.ChangeDescription("Changed", DateTimeOffset.UtcNow);
 
-        // Assert
-        Assert.That(updated.IsSuccess, Is.True);
-        Assert.That(fetched.Value.Description, Is.EqualTo("Changed"));
+        await _repository.UpdateAsync(product, CancellationToken.None);
+
+        Assert.That((await _repository.FindByIdAsync(2, CancellationToken.None))?.Description, Is.EqualTo("Changed"));
     }
 
     [Test]
-    public async Task UpdateProductDescriptionAsync_WithUnknownId_ReturnsNotFoundError()
+    public async Task FindByIdAsync_ReturnedCopy_DoesNotChangeStoredData()
     {
-        // Act
-        Result<Product> result = await _repository.UpdateProductDescriptionAsync(999, "text", CancellationToken.None);
+        Product copy = (await _repository.FindByIdAsync(1, CancellationToken.None))!;
+        copy.ChangeDescription("Changed outside the repository", DateTimeOffset.UtcNow);
 
-        // Assert
-        Assert.That(result.IsFailed, Is.True);
-        Assert.That(result.Errors.First(), Is.TypeOf<NotFoundError>());
-    }
+        Product stored = (await _repository.FindByIdAsync(1, CancellationToken.None))!;
 
-    [Test]
-    public async Task GetProductByIdAsync_ReturnedCopy_DoesNotChangeStoredData()
-    {
-        // Arrange
-        Result<Product> first = await _repository.GetProductByIdAsync(1, CancellationToken.None);
-        first.Value.Name = "Changed outside the repository";
-
-        // Act
-        Result<Product> second = await _repository.GetProductByIdAsync(1, CancellationToken.None);
-
-        // Assert
-        Assert.That(second.Value.Name, Is.Not.EqualTo("Changed outside the repository"));
+        Assert.That(stored.Description, Is.Not.EqualTo("Changed outside the repository"));
     }
 }

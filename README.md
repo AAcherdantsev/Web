@@ -59,7 +59,7 @@ The solution is split into layers. Dependencies point inwards.
 | Project | Responsibility |
 | --- | --- |
 | `Web.Api` | HTTP layer: endpoints (`Features/`), request and response models, validation, error responses, rate limiting, Swagger, and the composition root (`Program.cs`) |
-| `Web.Application` | Use-case contracts: `IProductRepository`, commands and queries, `ProductFactory` with business rules, and the error types |
+| `Web.Application` | Use cases (`IProductService`, `ProductService`), the business rules (`ProductRules`, `ProductFactory`), the store contract (`IProductRepository`, which only stores and loads products), and the error types |
 | `Web.Domain` | The `Product` entity, the field limits (`ProductLimits`), and the image address rules (`ProductImageUri`) |
 | `Web.Infrastructure` | Data access: the EF Core repository and migrations, the mock repository, seed data, and service registration |
 | `Web.AppHost` | .NET Aspire host that starts the API and, in the `Database` mode, SQL Server |
@@ -70,36 +70,26 @@ The solution is split into layers. Dependencies point inwards.
 * Docker, only for the **database** data source (SQL Server runs in a container through .NET Aspire)
 * Git, for the git hooks
 
-The `setup` script from the **scripts** folder installs the missing prerequisites, restores the packages and the local tools, and installs the git hooks. Run it from the root folder of this project:
-
-```bash
-bash scripts/setup.sh            # Linux/macOS
-```
-
-```powershell
-.\scripts\setup.ps1              # Windows
-```
-
 ## Running the application
 
 The data source is set by the `DataSource` setting:
 
 | Value | Storage | Requirements |
 | --- | --- | --- |
-| `Mock` | In memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
-| `Database` (default) | MS SQL Server, migrated and seeded on startup | Docker |
+| `Mock` (default) | In memory, pre-filled with sample products. Data is lost when the application stops. | .NET SDK only |
+| `Database` | MS SQL Server, migrated and seeded on startup | Docker |
 
 ### Option 1: mock data (no database)
 
-Run the API project with `DataSource` set to `Mock`:
+Run the API project:
 
 ```bash
-DataSource=Mock dotnet run --project src/Web.Api
+dotnet run --project src/Web.Api
 ```
 
 Swagger UI is then available at **http://localhost:5211/swagger**. The HTTPS profile of the launch settings uses **https://localhost:7252/swagger**.
 
-In the IDE, select the `http` or `https` profile of `Web.Api` and run it. The browser opens Swagger.
+In the IDE, run the `http` profile of `Web.Api`. It uses the mock data source, because `appsettings.Development.json` sets `DataSource` to `Mock`, and the browser opens Swagger. The `DataSource` value of the AppHost overrides this setting, so Option 2 still uses the database.
 
 ### Option 2: database through .NET Aspire
 
@@ -110,6 +100,21 @@ In the IDE, select the `http` or `https` profile of `Web.Api` and run it. The br
    dotnet user-secrets set "Parameters:sql-password" "MyStrongP@ssw0rd"
    cd ../..
    ```
+There is also the option to set a password via the UI after launching .NET Aspire:
+
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/38f509cc-feed-4bfa-8a2d-07343c512f66" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/e8568cd1-63e9-4efb-a3e6-2d5c0b3bc467" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/032b513a-a7e9-40c6-baa1-be89cafc75be" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/1a6d156c-bac3-49f1-b515-2692da007288" />
+
+Starting the database and applying migrations may take some time. While the process is underway, the “unhealthy” indicator will be visible.
+<img width="1419" height="946" alt="image" src="https://github.com/user-attachments/assets/73c2fdf3-6356-49ae-b797-eebd8f6ea90d" />
+
+If Docker and Aspire Workload are installed, the database container will start up, and the API will begin working:
+<img width="1419" height="946" alt="image" src="https://github.com/user-attachments/assets/7197c9e7-2be4-4f34-a3ae-fda3d09555e5" />
+
+
+
 
 2. **Start the solution** from the root folder of this project:
 
@@ -131,17 +136,21 @@ To run the **database** source without Aspire, set the connection string `Connec
 
 ## Running the tests
 
-From the root folder of this project:
+The tests need the .NET 10 SDK. One group of tests also needs **Docker**: `SqlServerProductRepositoryTests` starts a real SQL Server container with Testcontainers, and these tests are in the `Docker` category.
+
+With Docker running, run all tests:
 
 ```bash
 dotnet test
 ```
 
-Most tests do not need a database or Docker:
+Without Docker, skip the tests of the `Docker` category:
 
-* `Web.Api.Tests` calls the endpoints through `WebApplicationFactory` with a mocked repository, and checks validation, error responses, rate limits, health checks, security headers, and the mapping.
-* `Web.Infrastructure.Tests` tests the EF Core repository (EF Core in-memory provider), the mock repository, and the data source registration.
-* `SqlServerProductRepositoryTests` runs the migrations and the repository against a real SQL Server in a container. It needs a running Docker daemon.
+```bash
+dotnet test --filter "TestCategory!=Docker"
+```
+
+The rest of the tests do not need Docker or a database: `Web.Application.Tests` tests the business rules and the product service, `Web.Api.Tests` calls the endpoints through `WebApplicationFactory` with a mocked service, and `Web.Infrastructure.Tests` tests the EF Core repository (EF Core in-memory provider), the mock repository, and the data source registration.
 
 ## API endpoints
 
@@ -168,7 +177,14 @@ Examples are in [`src/Web.Api/Web.Api.http`](src/Web.Api/Web.Api.http).
 }
 ```
 
-`name`, `imgUri`, and a `price` greater than 0 are required. `imgUri` must be an absolute `http` or `https` address. `description` is optional, and it may be omitted or `null`.
+`name`, `imgUri`, and `price` are required:
+
+* `name` is not empty and has at most 200 characters.
+* `price` is greater than 0, has at most 2 decimal places, and is at most `9999999999999999.99` (the largest value that the `decimal(18,2)` column stores).
+* `imgUri` is an absolute `http` or `https` address with at most 2048 characters. Other schemes, such as `javascript:` or `file:`, are rejected.
+* `description` is optional, has at most 4000 characters, and may be omitted or `null`. A product created without a description returns `"description": ""`.
+
+**Updating the description:** `PATCH /v1/products/{id}` requires the `description` field. A `null` value is rejected with `400`, and an empty string clears the description.
 
 **Product response:** the dates are UTC with an explicit offset, for example `"createdAt": "2026-10-19T11:45:44.771147+00:00"`. The same format is used with the mock and the database data sources.
 
@@ -227,6 +243,8 @@ Limits are per instance. Behind a reverse proxy, the limiter sees the proxy's ad
 | `429` | The client exceeded the rate limit | Problem details. The `Retry-After` header gives the number of seconds to wait. |
 | `500` | Unexpected failure | Problem details with a generic `title`. `detail` and `stackTrace` appear only in the Development environment. |
 
+Every problem response has the same members: `type`, `title`, `status`, `detail`, `instance`, and `traceId`. The `errors` array is present for validation errors.
+
 Example validation error:
 
 ```json
@@ -246,12 +264,13 @@ Example validation error:
 Web.slnx
 src/
   Web.Api/                 HTTP endpoints, models, validation, rate limiting, Swagger
-  Web.Application/         Repository contract, commands, queries, business rules
+  Web.Application/         Use cases, business rules, repository contract, commands, queries
   Web.Domain/              Product entity, field limits, image address rules
   Web.Infrastructure/      EF Core, migrations, mock repository, seed data
   Web.AppHost/             .NET Aspire host (API + SQL Server)
 tests/
   Web.Api.Tests/
+  Web.Application.Tests/
   Web.Infrastructure.Tests/
 docs/adr/                  Architecture decision records
 docs/operations.md         Running and operating the API
@@ -355,6 +374,9 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE). Third-pa
 
 ## Future Roadmap
 
-This project is designed as a foundation for a modular e-commerce API.
-In the future, the following improvements and features can be implemented:
-* User authentication and authorization — add JWT-based authentication
+This project is designed as a foundation for a modular e-commerce API. The following steps are planned, and each one is described in the ADR it relates to:
+
+* **Authentication and authorization** for the write endpoints, then for the read endpoints ([ADR 0016](docs/adr/0016-anonymous-access-for-the-assignment.md)).
+* **Trusted forwarded headers** and a shared rate limit store, so that the limits apply per client and across instances ([ADR 0015](docs/adr/0015-rate-limiting.md)).
+* **Keyset pagination** if the product catalogue grows large enough that offset paging becomes slow ([ADR 0010](docs/adr/0010-pagination.md)).
+* **Compile-time mapping** with Riok.Mapperly, if mapping becomes a measured cost ([ADR 0011](docs/adr/0011-mapster-for-object-mapping.md)).

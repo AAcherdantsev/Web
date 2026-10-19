@@ -1,16 +1,12 @@
-using FluentResults;
 using Microsoft.Extensions.Logging;
 using Web.Application.Common;
-using Web.Application.Common.Errors;
 using Web.Application.Common.Repositories;
-using Web.Application.Products;
 using Web.Domain.Entities;
 
 namespace Web.Infrastructure.Mock;
 
 /// <summary>
-///     In-memory implementation of <see cref="IProductRepository" />. Used instead of the database when the
-///     <c>DataSource</c> setting is <c>Mock</c>. Data is lost when the application stops.
+///     In-memory product store, pre-filled with sample products. Used by the Mock data source and by tests.
 /// </summary>
 internal class MockProductRepository : IProductRepository
 {
@@ -20,127 +16,106 @@ internal class MockProductRepository : IProductRepository
     private int _lastId;
 
     /// <summary>
-    ///     Initializes a new instance of the <see cref="MockProductRepository" /> class, pre-filled with seed data.
+    ///     Creates a new instance of the <see cref="MockProductRepository" /> class with the sample products.
     /// </summary>
-    /// <param name="logger">The logger instance.</param>
-    public MockProductRepository(ILogger<MockProductRepository> logger)
+    /// <param name="logger">The logger.</param>
+    /// <param name="timeProvider">The source of the current time, used for the creation date of the sample products.</param>
+    public MockProductRepository(ILogger<MockProductRepository> logger, TimeProvider timeProvider)
     {
         _logger = logger;
-        _products = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow);
+        _products = [];
 
-        for (int i = 0; i < _products.Count; i++)
+        foreach (Product sample in ProductSeedData.CreateProducts(timeProvider.GetUtcNow()))
         {
-            _products[i] = Clone(_products[i], ++_lastId);
+            _products.Add(Clone(sample, ++_lastId));
         }
     }
 
     /// <inheritdoc />
-    public Task<Result<IEnumerable<Product>>> GetAllProductsAsync(CancellationToken cancellationToken)
+    public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting all products from mock data...");
-
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            IEnumerable<Product> products = _products
-                .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
-                .Select(Copy)
-                .ToList();
-
-            return Task.FromResult(Result.Ok(products));
+            IReadOnlyList<Product> products = Ordered().Select(Copy).ToList();
+            return Task.FromResult(products);
         }
     }
 
     /// <inheritdoc />
-    public Task<Result<PagedList<Product>>> GetAllProductsAsync(GetPagedProductsQuery query,
-        CancellationToken cancellationToken)
+    public Task<PagedList<Product>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting all products from mock data with pagination...");
-
+        _logger.LogInformation("Getting a page of products from mock data...");
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            List<Product> ordered = _products.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).ToList();
+            List<Product> ordered = Ordered();
+            // Same arithmetic as the database query. The request validation keeps the offset inside the int range.
+            List<Product> values = ordered.Skip(pageNumber * pageSize).Take(pageSize).Select(Copy).ToList();
 
-            IEnumerable<Product> values = ordered.Skip(query.PageNumber * query.PageSize).Take(query.PageSize);
-
-            PagedList<Product> pagedList = new(values.Select(Copy).ToList(), ordered.Count, query.PageNumber,
-                query.PageSize);
-
-            return Task.FromResult(Result.Ok(pagedList));
+            return Task.FromResult(new PagedList<Product>(values, ordered.Count, pageNumber, pageSize));
         }
     }
 
     /// <inheritdoc />
-    public Task<Result<Product>> GetProductByIdAsync(int productId, CancellationToken cancellationToken)
+    public Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting product with ID {productId} from mock data...", productId);
-
+        _logger.LogInformation("Getting product with ID {productId} from mock data...", id);
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            Product? product = _products.FirstOrDefault(p => p.Id == productId);
-
-            if (product != null)
-            {
-                return Task.FromResult(Result.Ok(Copy(product)));
-            }
+            Product? product = _products.FirstOrDefault(p => p.Id == id);
+            return Task.FromResult(product is null ? null : Copy(product));
         }
-
-        _logger.LogWarning("Product with ID {productId} not found", productId);
-        return Task.FromResult(Result.Fail<Product>(new NotFoundError("Product not found.")));
     }
 
     /// <inheritdoc />
-    public Task<Result<Product>> CreateProductAsync(CreateProductCommand command,
-        CancellationToken cancellationToken)
+    public Task AddAsync(Product product, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        Result<Product> creation = ProductFactory.Create(command, DateTimeOffset.UtcNow);
-
-        if (creation.IsFailed)
-        {
-            _logger.LogWarning("Invalid product data: {errors}. Unable to create the product.",
-                string.Join("; ", creation.Errors.Select(e => e.Message)));
-            return Task.FromResult(creation);
-        }
-
         lock (_lock)
         {
-            Product product = Clone(creation.Value, ++_lastId);
-            _products.Add(product);
+            Product stored = Clone(product, ++_lastId);
+            _products.Add(stored);
+            product.AssignId(stored.Id);
 
             _logger.LogInformation("Product {product} created successfully in mock data", product);
-            return Task.FromResult(Result.Ok(Copy(product)));
+            return Task.CompletedTask;
         }
     }
 
     /// <inheritdoc />
-    public Task<Result<Product>> UpdateProductDescriptionAsync(int productId, string description,
-        CancellationToken cancellationToken)
+    public Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            Product? product = _products.FirstOrDefault(p => p.Id == productId);
-
-            if (product == null)
+            int index = _products.FindIndex(p => p.Id == product.Id);
+            if (index < 0)
             {
-                _logger.LogWarning("Product with ID {productId} not found. Unable to update the product.", productId);
-                return Task.FromResult(Result.Fail<Product>(new NotFoundError("Product not found.")));
+                _logger.LogWarning("Product with ID {productId} not found. Unable to update the product.", product.Id);
+                return Task.CompletedTask;
             }
 
-            product.Description = description;
-            product.LastUpdatedAt = DateTimeOffset.UtcNow;
+            _products[index] = Copy(product);
 
             _logger.LogInformation("Product {product} updated successfully in mock data", product);
-            return Task.FromResult(Result.Ok(Copy(product)));
+            return Task.CompletedTask;
         }
+    }
+
+    /// <summary>
+    ///     Returns the stored products in the order of creation. Must be called while holding the lock.
+    /// </summary>
+    private List<Product> Ordered()
+    {
+        return _products.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).ToList();
     }
 
     /// <summary>
@@ -156,15 +131,7 @@ internal class MockProductRepository : IProductRepository
     /// </summary>
     private static Product Clone(Product product, int id)
     {
-        return new()
-        {
-            Id = id,
-            Name = product.Name,
-            ImgUri = product.ImgUri,
-            Price = product.Price,
-            Description = product.Description,
-            CreatedAt = product.CreatedAt,
-            LastUpdatedAt = product.LastUpdatedAt
-        };
+        return Product.Restore(id, product.Name, product.ImgUri, product.Price, product.Description,
+            product.CreatedAt, product.LastUpdatedAt);
     }
 }
