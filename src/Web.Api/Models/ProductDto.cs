@@ -10,8 +10,7 @@ public sealed class ProductDto
     /// <summary>
     ///     The unique identifier of the product.
     /// </summary>
-    [Required]
-    public int Id { get; init; }
+    public required int Id { get; init; }
 
     /// <summary>
     ///     The name of the product.
@@ -26,8 +25,7 @@ public sealed class ProductDto
     /// <summary>
     ///     The price of the product.
     /// </summary>
-    [Required]
-    public decimal Price { get; init; }
+    public required decimal Price { get; init; }
 
     /// <summary>
     ///     The description of the product.
