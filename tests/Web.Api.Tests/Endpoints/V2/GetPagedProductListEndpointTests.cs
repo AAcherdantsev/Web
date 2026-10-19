@@ -44,7 +44,8 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         ServiceMock.Verify(s => s.GetPagedAsync(
-            It.Is<GetPagedProductsQuery>(q => q.PageNumber == 0 && q.PageSize == 10), It.IsAny<CancellationToken>()),
+                It.Is<GetPagedProductsQuery>(q => q.PageNumber == 0 && q.PageSize == 10),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

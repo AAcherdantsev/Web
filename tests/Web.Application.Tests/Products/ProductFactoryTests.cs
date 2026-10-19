@@ -1,4 +1,6 @@
+using FluentResults;
 using Web.Application.Products;
+using Web.Domain.Entities;
 
 namespace Web.Application.Tests.Products;
 
@@ -21,7 +23,7 @@ public class ProductFactoryTests
             Description = "A phone"
         };
 
-        var result = ProductFactory.Create(command, CreatedAt);
+        Result<Product> result = ProductFactory.Create(command, CreatedAt);
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.Value.Name, Is.EqualTo("Phone"));
@@ -35,7 +37,7 @@ public class ProductFactoryTests
     {
         CreateProductCommand command = new() { Name = "Phone", ImgUri = "https://example.com/p.jpg", Price = 1 };
 
-        var result = ProductFactory.Create(command, CreatedAt);
+        Result<Product> result = ProductFactory.Create(command, CreatedAt);
 
         Assert.That(result.Value.Description, Is.Empty);
     }
@@ -45,7 +47,7 @@ public class ProductFactoryTests
     {
         CreateProductCommand command = new() { Name = "Phone", ImgUri = "https://example.com/p.jpg", Price = 0.001m };
 
-        var result = ProductFactory.Create(command, CreatedAt);
+        Result<Product> result = ProductFactory.Create(command, CreatedAt);
 
         Assert.That(result.IsFailed, Is.True);
     }
@@ -55,7 +57,7 @@ public class ProductFactoryTests
     {
         CreateProductCommand command = new() { Name = "Phone", ImgUri = "javascript:alert(1)", Price = 1 };
 
-        var result = ProductFactory.Create(command, CreatedAt);
+        Result<Product> result = ProductFactory.Create(command, CreatedAt);
 
         Assert.That(result.IsFailed, Is.True);
     }

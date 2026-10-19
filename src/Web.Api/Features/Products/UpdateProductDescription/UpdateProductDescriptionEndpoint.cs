@@ -7,7 +7,6 @@ using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Common.Errors;
 using Web.Domain.Entities;
-
 using Web.Application.Products;
 
 namespace Web.Api.Features.Products.UpdateProductDescription;

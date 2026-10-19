@@ -54,7 +54,7 @@ internal class ProductRepository : IProductRepository
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedList<Product>(values, totalCount, pageNumber, pageSize);
+        return new(values, totalCount, pageNumber, pageSize);
     }
 
     /// <inheritdoc />

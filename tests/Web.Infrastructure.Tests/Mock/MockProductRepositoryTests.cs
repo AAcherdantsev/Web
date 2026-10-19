@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using Web.Application.Common;
 using Web.Domain.Entities;
 using Web.Infrastructure.Mock;
 
@@ -32,7 +33,7 @@ public class MockProductRepositoryTests
     [Test]
     public async Task GetPagedAsync_ReturnsRequestedPage()
     {
-        var page = await _repository.GetPagedAsync(1, 5, CancellationToken.None);
+        PagedList<Product> page = await _repository.GetPagedAsync(1, 5, CancellationToken.None);
 
         Assert.That(page.Values, Has.Count.EqualTo(5));
         Assert.That(page.Values.First().Id, Is.EqualTo(6));

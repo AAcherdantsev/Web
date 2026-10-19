@@ -44,7 +44,8 @@ public static class ValidationExtensions
 
     extension<T>(IRuleBuilder<T, int?> ruleBuilder)
     {
-        public IRuleBuilderOptions<T, int?> PageNumberRules(IOptions<PaginationOptions> pagination, Func<T, int?> pageSizeSelector)
+        public IRuleBuilderOptions<T, int?> PageNumberRules(IOptions<PaginationOptions> pagination,
+            Func<T, int?> pageSizeSelector)
         {
             return ruleBuilder
                 .GreaterThanOrEqualTo(0)
