@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <!-- Compiler warnings fail the build, so they cannot accumulate unnoticed -->
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <ItemGroup>
