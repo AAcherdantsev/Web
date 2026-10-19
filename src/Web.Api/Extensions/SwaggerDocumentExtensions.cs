@@ -35,7 +35,7 @@ internal static class SwaggerDocumentExtensions
                     s.SchemaSettings.SchemaNameGenerator = new DefaultSchemaNameGenerator();
                 };
                 o.MaxEndpointVersion = version;
-                o.MinEndpointVersion = version;
+                o.MinEndpointVersion = 1;
             });
         }
     }
