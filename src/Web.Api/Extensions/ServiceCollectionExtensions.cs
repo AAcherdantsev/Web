@@ -8,6 +8,7 @@ using Web.Api.Errors;
 using Web.Application.Products;
 using Web.Infrastructure.Configurations;
 using Web.Infrastructure.Services;
+using ProblemDetails = Microsoft.AspNetCore.Mvc.ProblemDetails;
 
 namespace Web.Api.Extensions;
 
@@ -76,14 +77,28 @@ public static class ServiceCollectionExtensions
         {
             app.UseFastEndpoints(c =>
             {
-                // Validation and other error responses use RFC 7807 problem details
-                c.Errors.UseProblemDetails(problem =>
+                c.Errors.ResponseBuilder = (failures, context, statusCode) =>
                 {
-                    // The same problem type as the other error responses of the API
-                    problem.TypeTransformer = response => response.Status == StatusCodes.Status400BadRequest
-                        ? ProblemResults.BAD_REQUEST_TYPE
-                        : response.Type;
-                });
+                    ProblemDetails problemDetails = new()
+                    {
+                        Type = ProblemResults.BAD_REQUEST_TYPE,
+                        Title = "Bad Request",
+                        Status = statusCode,
+                        Instance = context.Request.Path,
+                        Detail = failures.FirstOrDefault()?.ErrorMessage,
+                        Extensions =
+                        {
+                            ["traceId"] = context.TraceIdentifier,
+                            ["errors"] = failures.Select(f => new
+                            {
+                                name = f.PropertyName, reason = f.ErrorMessage, code = f.ErrorCode
+                            })
+                        }
+                    };
+
+                    return problemDetails;
+                };
+
                 c.Versioning.Prefix = "v";
                 c.Versioning.PrependToRoute = true;
             });
