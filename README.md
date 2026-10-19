@@ -249,11 +249,18 @@ Example validation error:
 
 ```json
 {
-  "type": "https://www.rfc-editor.org/rfc/rfc7231#section-6.5.1",
+  "type": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
   "title": "Bad Request",
   "status": 400,
+  "detail": "The price must be greater than 0.",
+  "instance": "/v1/products",
+  "traceId": "0HNPE5V0LFNQ6:00000001",
   "errors": [
-    { "name": "price", "reason": "The price must be greater than 0." }
+    {
+      "name": "price",
+      "reason": "The price must be greater than 0.",
+      "code": "ERROR_0003"
+    }
   ]
 }
 ```
