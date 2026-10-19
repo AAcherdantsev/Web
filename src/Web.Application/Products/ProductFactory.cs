@@ -15,7 +15,7 @@ public static class ProductFactory
     /// <param name="command">The command containing product details.</param>
     /// <param name="utcNow">The current UTC time, used for the creation and update timestamps.</param>
     /// <returns>A successful result with the new product, or a failed result describing the invalid input.</returns>
-    public static Result<Product> Create(CreateProductCommand command, DateTime utcNow)
+    public static Result<Product> Create(CreateProductCommand command, DateTimeOffset utcNow)
     {
         if (string.IsNullOrWhiteSpace(command.Name))
         {
@@ -32,7 +32,7 @@ public static class ProductFactory
             return Result.Fail("Price cannot be negative.");
         }
 
-        if (!Uri.TryCreate(command.ImgUri, UriKind.Absolute, out _))
+        if (!ProductImageUri.IsValid(command.ImgUri))
         {
             return Result.Fail("Image URI is not valid.");
         }
@@ -42,7 +42,8 @@ public static class ProductFactory
             return Result.Fail($"Image URI cannot be longer than {ProductLimits.MAX_IMG_URI_LENGTH} characters.");
         }
 
-        if (command.Description.Length > ProductLimits.MAX_DESCRIPTION_LENGTH)
+        string description = command.Description ?? string.Empty;
+        if (description.Length > ProductLimits.MAX_DESCRIPTION_LENGTH)
         {
             return Result.Fail($"Description cannot be longer than {ProductLimits.MAX_DESCRIPTION_LENGTH} characters.");
         }
@@ -52,7 +53,7 @@ public static class ProductFactory
             Name = command.Name,
             Price = command.Price,
             ImgUri = command.ImgUri,
-            Description = command.Description,
+            Description = description,
             CreatedAt = utcNow,
             LastUpdatedAt = utcNow
         });

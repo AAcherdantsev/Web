@@ -46,7 +46,7 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
             s.Summary = "Get paged list of products";
             s.Description =
                 "Returns a paginated list of products. Uses the configured default page size when pageSize is omitted.";
-            s.Params["pageNumber"] = "Zero-based page number.";
+            s.Params["pageNumber"] = "Zero-based page number. Defaults to 0.";
             s.Params["pageSize"] =
                 "Number of products per page. Defaults to the configured default page size (10 by default).";
             s.Response<PagedList<ProductDto>>(StatusCodes.Status200OK, "Paged list of products retrieved successfully");
@@ -68,7 +68,7 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
     {
         GetPagedProductsQuery query = new()
         {
-            PageNumber = req.PageNumber,
+            PageNumber = req.PageNumber ?? 0,
             PageSize = req.PageSize ?? _pagination.DefaultPageSize
         };
 

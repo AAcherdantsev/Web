@@ -33,10 +33,10 @@ public sealed class ProductDto
     /// <summary>
     ///     The date and time when the product was created.
     /// </summary>
-    public DateTime CreatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
     ///     The date and time when the product was last updated.
     /// </summary>
-    public DateTime LastUpdatedAt { get; init; }
+    public DateTimeOffset LastUpdatedAt { get; init; }
 }

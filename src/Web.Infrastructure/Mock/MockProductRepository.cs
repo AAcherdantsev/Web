@@ -26,7 +26,7 @@ internal class MockProductRepository : IProductRepository
     public MockProductRepository(ILogger<MockProductRepository> logger)
     {
         _logger = logger;
-        _products = ProductSeedData.CreateProducts(DateTime.UtcNow);
+        _products = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow);
 
         for (int i = 0; i < _products.Count; i++)
         {
@@ -100,7 +100,7 @@ internal class MockProductRepository : IProductRepository
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        Result<Product> creation = ProductFactory.Create(command, DateTime.UtcNow);
+        Result<Product> creation = ProductFactory.Create(command, DateTimeOffset.UtcNow);
 
         if (creation.IsFailed)
         {
@@ -136,7 +136,7 @@ internal class MockProductRepository : IProductRepository
             }
 
             product.Description = description;
-            product.LastUpdatedAt = DateTime.UtcNow;
+            product.LastUpdatedAt = DateTimeOffset.UtcNow;
 
             _logger.LogInformation("Product {product} updated successfully in mock data", product);
             return Task.FromResult(Result.Ok(Copy(product)));

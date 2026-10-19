@@ -8,6 +8,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UserSecretsId>506acb6f-bc61-4cf8-b283-43dac73ec751</UserSecretsId>
+        <!-- The Aspire CLI bundle is not used, so the warning that asks for it is suppressed -->
+        <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

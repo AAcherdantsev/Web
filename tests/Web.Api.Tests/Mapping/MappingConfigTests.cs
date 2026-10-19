@@ -22,8 +22,8 @@ public class MappingConfigTests
     public void Product_MapsAllFieldsToProductDto()
     {
         // Arrange
-        DateTime created = new(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-        DateTime updated = new(2026, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+        DateTimeOffset created = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+        DateTimeOffset updated = new(2026, 2, 3, 4, 5, 6, TimeSpan.Zero);
         Product product = new()
         {
             Id = 7,

@@ -14,10 +14,12 @@ if (dataSource == "Database")
 {
     IResourceBuilder<ParameterResource> saPassword = builder.AddParameter("sql-password", true);
 
+    // The data lives in a Docker volume managed by Aspire. A bind mount would need the folder to be writable by the
+    // SQL Server user (uid 10001) on every host, which is not the case on Linux.
     IResourceBuilder<SqlServerDatabaseResource> sql = builder
-        .AddSqlServer("sql", saPassword, 1433)
+        .AddSqlServer("sql", saPassword)
         .WithImageTag("2022-latest")
-        .WithBindMount("./sql-data", "/var/opt/mssql")
+        .WithDataVolume()
         .AddDatabase("WebDb");
 
     api.WaitFor(sql).WithReference(sql);

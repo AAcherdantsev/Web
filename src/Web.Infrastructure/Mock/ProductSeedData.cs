@@ -11,7 +11,7 @@ public static class ProductSeedData
     ///     Creates a new list of sample products. Each call returns new instances, so callers can modify them freely.
     /// </summary>
     /// <param name="utcNow">The creation and update timestamp for every product.</param>
-    public static List<Product> CreateProducts(DateTime utcNow)
+    public static List<Product> CreateProducts(DateTimeOffset utcNow)
     {
         return
         [

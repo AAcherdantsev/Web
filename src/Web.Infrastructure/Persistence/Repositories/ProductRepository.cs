@@ -89,7 +89,7 @@ internal class ProductRepository : IProductRepository
     public async Task<Result<Product>> CreateProductAsync(CreateProductCommand command,
         CancellationToken cancellationToken)
     {
-        Result<Product> creation = ProductFactory.Create(command, DateTime.UtcNow);
+        Result<Product> creation = ProductFactory.Create(command, DateTimeOffset.UtcNow);
 
         if (creation.IsFailed)
         {
@@ -122,7 +122,7 @@ internal class ProductRepository : IProductRepository
         }
 
         product.Description = description;
-        product.LastUpdatedAt = DateTime.UtcNow;
+        product.LastUpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
 
