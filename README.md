@@ -192,7 +192,7 @@ Examples are in [`src/Web.Api/Web.Api.http`](src/Web.Api/Web.Api.http).
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `DataSource` | `Database` | `Database` or `Mock`. Set in `appsettings.json`, as an environment variable, or on the command line. |
+| `DataSource` | `Mock` | `Database` or `Mock`. Set in `appsettings.json`, as an environment variable, or on the command line. |
 | `Pagination:DefaultPageSize` | `10` | Page size used when a v2 request omits `pageSize`. |
 | `Pagination:MaxPageSize` | `100` | Largest page size a client may request. |
 | `RateLimiting:Reads` | 100 per 60 s, burst 100 | Token bucket for `GET` requests, per client IP. |
