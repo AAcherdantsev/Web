@@ -78,8 +78,13 @@ internal class ProductRepository : IProductRepository
     /// <inheritdoc />
     public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
     {
+        if (_context.Entry(product).State == EntityState.Detached)
+        {
+            _context.Products.Update(product);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Product {product} updated successfully", product);
+        _logger.LogInformation("Product {ProductId} updated successfully", product.Id);
     }
 }
