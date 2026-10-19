@@ -1,3 +1,4 @@
+using System.Globalization;
 using Web.Domain.Entities;
 
 namespace Web.Api.Validation;
@@ -23,6 +24,8 @@ public static class ValidationErrorCodes
 
     public static readonly string ERROR_0008 = "The page number must be greater than or equal to 0.";
     public static readonly string ERROR_0010 = "The requested page is beyond the supported range.";
+    public static readonly string ERROR_0011 =
+        $"The price must be at most {ProductPrice.MAX.ToString(CultureInfo.InvariantCulture)} and have at most 2 decimal places.";
 
     public static string ERROR_0009(int maxPageSize) => $"The page size must be between 1 and {maxPageSize}.";
 }

@@ -4,6 +4,8 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Web.Api.Configuration;
+using Web.Api.Errors;
+using Web.Application.Products;
 using Web.Infrastructure.Configurations;
 using Web.Infrastructure.Services;
 
@@ -31,6 +33,14 @@ public static class ServiceCollectionExtensions
 
     extension(WebApplicationBuilder builder)
     {
+        /// <summary>
+        ///     Registers the product use cases. The time source is registered by the infrastructure.
+        /// </summary>
+        public void AddProductServices()
+        {
+            builder.Services.AddScoped<IProductService, ProductService>();
+        }
+
         public void AddPaginationOptions()
         {
             builder.Services.AddOptions<PaginationOptions>()
@@ -67,7 +77,13 @@ public static class ServiceCollectionExtensions
             app.UseFastEndpoints(c =>
             {
                 // Validation and other error responses use RFC 7807 problem details
-                c.Errors.UseProblemDetails();
+                c.Errors.UseProblemDetails(problem =>
+                {
+                    // The same problem type as the other error responses of the API
+                    problem.TypeTransformer = response => response.Status == StatusCodes.Status400BadRequest
+                        ? ProblemResults.BAD_REQUEST_TYPE
+                        : response.Type;
+                });
                 c.Versioning.Prefix = "v";
                 c.Versioning.PrependToRoute = true;
             });

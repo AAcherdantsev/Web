@@ -1,6 +1,7 @@
 using Mapster;
 using Web.Api.Configuration.Mapping;
 using Web.Api.Models;
+using Web.Api.Tests.TestData;
 using Web.Application.Common;
 using Web.Domain.Entities;
 
@@ -16,24 +17,15 @@ public class MappingConfigTests
         new MappingConfig().Register(_config);
     }
 
-    private TypeAdapterConfig _config;
+    private TypeAdapterConfig _config = null!;
 
     [Test]
     public void Product_MapsAllFieldsToProductDto()
     {
         // Arrange
-        DateTimeOffset created = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
         DateTimeOffset updated = new(2026, 2, 3, 4, 5, 6, TimeSpan.Zero);
-        Product product = new()
-        {
-            Id = 7,
-            Name = "Phone",
-            ImgUri = "https://example.com/phone.jpg",
-            Price = 99.5m,
-            Description = "Description",
-            CreatedAt = created,
-            LastUpdatedAt = updated
-        };
+        Product product = Product.Restore(7, "Phone", "https://example.com/p.jpg", 10, "desc",
+            TestProducts.Created, updated);
 
         // Act
         ProductDto dto = product.Adapt<ProductDto>(_config);
@@ -41,10 +33,10 @@ public class MappingConfigTests
         // Assert
         Assert.That(dto.Id, Is.EqualTo(7));
         Assert.That(dto.Name, Is.EqualTo("Phone"));
-        Assert.That(dto.ImgUri, Is.EqualTo("https://example.com/phone.jpg"));
-        Assert.That(dto.Price, Is.EqualTo(99.5m));
-        Assert.That(dto.Description, Is.EqualTo("Description"));
-        Assert.That(dto.CreatedAt, Is.EqualTo(created));
+        Assert.That(dto.ImgUri, Is.EqualTo("https://example.com/p.jpg"));
+        Assert.That(dto.Price, Is.EqualTo(10));
+        Assert.That(dto.Description, Is.EqualTo("desc"));
+        Assert.That(dto.CreatedAt, Is.EqualTo(TestProducts.Created));
         Assert.That(dto.LastUpdatedAt, Is.EqualTo(updated));
     }
 
@@ -54,8 +46,8 @@ public class MappingConfigTests
         // Arrange
         List<Product> products =
         [
-            new() { Id = 1, Name = "A", ImgUri = "https://example.com/a.jpg", Price = 20 },
-            new() { Id = 2, Name = "B", ImgUri = "https://example.com/b.jpg", Price = 10 }
+            TestProducts.Create(1, "A", 20),
+            TestProducts.Create(2, "B", 10)
         ];
         PagedList<Product> source = new(products, 5, 1, 2);
 

@@ -75,7 +75,13 @@ public static class ValidationExtensions
         {
             return ruleBuilder.GreaterThan(0)
                 .WithErrorCode(nameof(ERROR_0003))
-                .WithMessage(ERROR_0003);
+                .WithMessage(ERROR_0003)
+                .LessThanOrEqualTo(ProductPrice.MAX)
+                .WithErrorCode(nameof(ERROR_0011))
+                .WithMessage(ERROR_0011)
+                .Must(ProductPrice.HasAtMostTwoDecimalPlaces)
+                .WithErrorCode(nameof(ERROR_0011))
+                .WithMessage(ERROR_0011);
         }
     }
 }

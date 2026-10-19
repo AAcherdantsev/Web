@@ -4,58 +4,34 @@ using Web.Domain.Entities;
 namespace Web.Application.Products;
 
 /// <summary>
-///     Creates <see cref="Product" /> instances from a <see cref="CreateProductCommand" /> after validating them.
-///     Shared by every repository implementation so the rules are defined once.
+///     Creates <see cref="Product" /> instances from a <see cref="CreateProductCommand" /> after checking the rules.
 /// </summary>
 public static class ProductFactory
 {
     /// <summary>
-    ///     Validates the command and creates a new product.
+    ///     Checks the command and creates a new product.
     /// </summary>
     /// <param name="command">The command containing product details.</param>
-    /// <param name="utcNow">The current UTC time, used for the creation and update timestamps.</param>
-    /// <returns>A successful result with the new product, or a failed result describing the invalid input.</returns>
-    public static Result<Product> Create(CreateProductCommand command, DateTimeOffset utcNow)
+    /// <param name="createdAt">The time of creation.</param>
+    /// <returns>A successful result with the new product, or a failed result with the first broken rule.</returns>
+    public static Result<Product> Create(CreateProductCommand command, DateTimeOffset createdAt)
     {
-        if (string.IsNullOrWhiteSpace(command.Name))
+        Result check = Result.Merge(
+            ProductRules.ValidateName(command.Name),
+            ProductRules.ValidatePrice(command.Price),
+            ProductRules.ValidateImgUri(command.ImgUri),
+            ProductRules.ValidateDescription(command.Description));
+
+        if (check.IsFailed)
         {
-            return Result.Fail("Name cannot be empty.");
+            return check;
         }
 
-        if (command.Name.Length > ProductLimits.MAX_NAME_LENGTH)
-        {
-            return Result.Fail($"Name cannot be longer than {ProductLimits.MAX_NAME_LENGTH} characters.");
-        }
-
-        if (command.Price < 0)
-        {
-            return Result.Fail("Price cannot be negative.");
-        }
-
-        if (!ProductImageUri.IsValid(command.ImgUri))
-        {
-            return Result.Fail("Image URI is not valid.");
-        }
-
-        if (command.ImgUri.Length > ProductLimits.MAX_IMG_URI_LENGTH)
-        {
-            return Result.Fail($"Image URI cannot be longer than {ProductLimits.MAX_IMG_URI_LENGTH} characters.");
-        }
-
-        string description = command.Description ?? string.Empty;
-        if (description.Length > ProductLimits.MAX_DESCRIPTION_LENGTH)
-        {
-            return Result.Fail($"Description cannot be longer than {ProductLimits.MAX_DESCRIPTION_LENGTH} characters.");
-        }
-
-        return Result.Ok(new Product
-        {
-            Name = command.Name,
-            Price = command.Price,
-            ImgUri = command.ImgUri,
-            Description = description,
-            CreatedAt = utcNow,
-            LastUpdatedAt = utcNow
-        });
+        return Result.Ok(new Product(
+            command.Name,
+            command.ImgUri,
+            command.Price,
+            command.Description ?? string.Empty,
+            createdAt));
     }
 }

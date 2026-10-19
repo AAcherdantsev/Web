@@ -6,8 +6,9 @@ using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Common.Errors;
-using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
+
+using Web.Application.Products;
 
 namespace Web.Api.Features.Products.UpdateProductDescription;
 
@@ -16,15 +17,15 @@ namespace Web.Api.Features.Products.UpdateProductDescription;
 /// </summary>
 public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDescriptionRequest, ProductDto>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="UpdateProductDescriptionEndpoint" /> class.
     /// </summary>
-    /// <param name="productRepository">The repository used to access and update product data.</param>
-    public UpdateProductDescriptionEndpoint(IProductRepository productRepository)
+    /// <param name="productService">The repository used to access and update product data.</param>
+    public UpdateProductDescriptionEndpoint(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     /// <summary>
@@ -62,7 +63,7 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
     {
         int productId = Route<int>("id");
 
-        Result<Product> result = await _productRepository.UpdateProductDescriptionAsync(productId, req.Description, ct);
+        Result<Product> result = await _productService.UpdateDescriptionAsync(productId, req.Description, ct);
 
         if (result.IsSuccess)
         {

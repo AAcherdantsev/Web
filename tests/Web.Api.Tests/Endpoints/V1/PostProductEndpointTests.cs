@@ -1,9 +1,9 @@
-using System.Text;
+using System.Net;
 using System.Text.Json;
 using FluentResults;
 using Moq;
-using Web.Api.Features.Products.CreateProduct;
 using Web.Api.Tests.IntegrationTests;
+using Web.Api.Tests.TestData;
 using Web.Application.Products;
 using Web.Domain.Entities;
 
@@ -13,68 +13,50 @@ namespace Web.Api.Tests.Endpoints.V1;
 public class PostProductEndpointTests : IntegrationTestBase
 {
     [Test]
-    public async Task PostProduct_CreatesProduct_WhenRepositoryIsSuccessful()
+    public async Task PostProduct_Returns201WithLocationAndProduct()
     {
         // Arrange
-        Product domainProduct = new()
-        {
-            Id = 1,
-            Name = "Test Product",
-            ImgUri = "http://image",
-            Price = 10,
-            Description = "desc",
-            CreatedAt = DateTimeOffset.UtcNow,
-            LastUpdatedAt = DateTimeOffset.UtcNow
-        };
-
-        CreateProductRequest request = new()
-        {
-            Name = "Test Product",
-            ImgUri = "http://image",
-            Price = 10,
-            Description = "desc"
-        };
-
-        string json = JsonSerializer.Serialize(request);
-        StringContent content = new(json, Encoding.UTF8, "application/json");
-
-        RepositoryMock.Setup(r => r.CreateProductAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok(domainProduct));
+        ServiceMock.Setup(s => s.CreateAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok(TestProducts.Create(7, "Phone", 10)));
 
         // Act
-        HttpResponseMessage response = await Client.PostAsync("/v1/products", content);
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Post, "/v1/products",
+            "{\"name\":\"Phone\",\"imgUri\":\"https://example.com/p.jpg\",\"price\":10}");
+        using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         // Assert
-        Assert.IsTrue(response.IsSuccessStatusCode);
-        RepositoryMock.Verify(
-            r => r.CreateProductAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        Assert.That(response.Headers.Location?.ToString(), Is.EqualTo("/v1/products/7"));
+        Assert.That(document.RootElement.GetProperty("name").GetString(), Is.EqualTo("Phone"));
     }
 
     [Test]
-    public async Task PostProduct_WithNullDescription_Returns201()
+    public async Task PostProduct_WithNullDescription_PassesAnEmptyDescriptionToTheService()
     {
-        // Arrange: a JSON null is not an empty description and must not reach the business rules as a null
-        string json = "{\"name\":\"Phone\",\"imgUri\":\"https://example.com/phone.jpg\",\"price\":10,\"description\":null}";
-        StringContent content = new(json, Encoding.UTF8, "application/json");
-
+        // Arrange: a JSON null is not a description, so it must not reach the business rules as a null
         CreateProductCommand? received = null;
-        RepositoryMock.Setup(r => r.CreateProductAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
+        ServiceMock.Setup(s => s.CreateAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
             .Callback<CreateProductCommand, CancellationToken>((command, _) => received = command)
-            .ReturnsAsync(Result.Ok(new Product
-            {
-                Id = 1,
-                Name = "Phone",
-                ImgUri = "https://example.com/phone.jpg",
-                Price = 10,
-                CreatedAt = DateTimeOffset.UtcNow,
-                LastUpdatedAt = DateTimeOffset.UtcNow
-            }));
+            .ReturnsAsync(Result.Ok(TestProducts.Create(7)));
 
         // Act
-        HttpResponseMessage response = await Client.PostAsync("/v1/products", content);
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Post, "/v1/products",
+            "{\"name\":\"Phone\",\"imgUri\":\"https://example.com/p.jpg\",\"price\":10,\"description\":null}");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Created));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
         Assert.That(received?.Description, Is.Null.Or.Empty);
+    }
+
+    [Test]
+    public async Task PostProduct_WhenServiceRejectsTheProduct_Returns400ProblemDetails()
+    {
+        ServiceMock.Setup(s => s.CreateAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<Product>("Price must be greater than 0."));
+
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Post, "/v1/products",
+            "{\"name\":\"Phone\",\"imgUri\":\"https://example.com/p.jpg\",\"price\":10}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 }

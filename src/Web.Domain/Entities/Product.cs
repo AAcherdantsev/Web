@@ -1,45 +1,102 @@
 namespace Web.Domain.Entities;
 
 /// <summary>
-///     Domain entity representing a product.
+///     Domain entity representing a product. Its values change only through the methods of this class.
 /// </summary>
 public class Product : BaseEntity
 {
     /// <summary>
+    ///     Constructor used by Entity Framework Core when it loads a product.
+    /// </summary>
+    private Product()
+    {
+    }
+
+    /// <summary>
+    ///     Creates a new product that has not been stored yet.
+    /// </summary>
+    /// <param name="name">The product name.</param>
+    /// <param name="imgUri">URI of the product image.</param>
+    /// <param name="price">Price of the product.</param>
+    /// <param name="description">Description of the product.</param>
+    /// <param name="createdAt">Date and time when the product was created.</param>
+    public Product(string name, string imgUri, decimal price, string description, DateTimeOffset createdAt)
+    {
+        Name = name;
+        ImgUri = imgUri;
+        Price = price;
+        Description = description;
+        CreatedAt = createdAt;
+        LastUpdatedAt = createdAt;
+    }
+
+    /// <summary>
+    ///     Recreates a product with its stored values, for example when a copy is made by a store.
+    /// </summary>
+    public static Product Restore(int id, string name, string imgUri, decimal price, string description,
+        DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt)
+    {
+        Product product = new(name, imgUri, price, description, createdAt);
+        product.ChangeDescription(description, lastUpdatedAt);
+        product.AssignId(id);
+        return product;
+    }
+
+    /// <summary>
     ///     The product name.
     /// </summary>
-    public required string Name { get; set; }
+    public string Name { get; private set; } = string.Empty;
 
     /// <summary>
     ///     URI of the product image.
     /// </summary>
-    public required string ImgUri { get; set; }
+    public string ImgUri { get; private set; } = string.Empty;
 
     /// <summary>
     ///     Price of the product.
     /// </summary>
-    public required decimal Price { get; set; }
+    public decimal Price { get; private set; }
 
     /// <summary>
-    ///     Description of the product.
+    ///     Description of the product. Empty when the product has no description.
     /// </summary>
-    public string Description { get; set; } = string.Empty;
+    public string Description { get; private set; } = string.Empty;
 
     /// <summary>
     ///     Date and time when the product was created.
     /// </summary>
-    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>
-    ///     Date and time when the product was last updated.
+    ///     Date and time of the last change.
     /// </summary>
-    public DateTimeOffset LastUpdatedAt { get; set; }
+    public DateTimeOffset LastUpdatedAt { get; private set; }
+
+    /// <summary>
+    ///     Replaces the description of the product and records the time of the change.
+    /// </summary>
+    /// <param name="description">The new description. Empty when the product has no description.</param>
+    /// <param name="updatedAt">The time of the change.</param>
+    public void ChangeDescription(string description, DateTimeOffset updatedAt)
+    {
+        Description = description;
+        LastUpdatedAt = updatedAt;
+    }
+
+    /// <summary>
+    ///     Sets the identifier. Called by the store when the product is added.
+    /// </summary>
+    /// <param name="id">The identifier assigned by the store.</param>
+    public void AssignId(int id)
+    {
+        Id = id;
+    }
 
     /// <inheritdoc />
     public override string ToString()
     {
         return $"Id:{Id}, Name:{Name}, Price:{Price}, ImgUri:{ImgUri}, " +
                $"Description:{(string.IsNullOrEmpty(Description) ? "-" : Description)}, " +
-               $"Created:{CreatedAt:dd.MM.yyyy hh:mm:ss}, LastUpdatedAt:{LastUpdatedAt:dd.MM.yyyy hh:mm:ss}";
+               $"Created:{CreatedAt:dd.MM.yyyy HH:mm:ss}, LastUpdatedAt:{LastUpdatedAt:dd.MM.yyyy HH:mm:ss}";
     }
 }

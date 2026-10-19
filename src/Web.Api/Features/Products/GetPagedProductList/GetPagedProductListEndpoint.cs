@@ -1,5 +1,4 @@
 using FastEndpoints;
-using FluentResults;
 using Mapster;
 using Microsoft.Extensions.Options;
 using Web.Api.Configuration;
@@ -7,7 +6,6 @@ using Web.Api.Configuration.RateLimiting;
 using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Common;
-using Web.Application.Common.Repositories;
 using Web.Application.Products;
 using Web.Domain.Entities;
 
@@ -19,16 +17,16 @@ namespace Web.Api.Features.Products.GetPagedProductList;
 public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRequest, PagedList<ProductDto>>
 {
     private readonly PaginationOptions _pagination;
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="GetPagedProductListEndpoint" /> class.
     /// </summary>
-    /// <param name="productRepository">The repository used to retrieve product data.</param>
+    /// <param name="productService">The repository used to retrieve product data.</param>
     /// <param name="pagination">The pagination settings, including the default page size.</param>
-    public GetPagedProductListEndpoint(IProductRepository productRepository, IOptions<PaginationOptions> pagination)
+    public GetPagedProductListEndpoint(IProductService productService, IOptions<PaginationOptions> pagination)
     {
-        _productRepository = productRepository;
+        _productService = productService;
         _pagination = pagination.Value;
     }
 
@@ -72,14 +70,8 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
             PageSize = req.PageSize ?? _pagination.DefaultPageSize
         };
 
-        Result<PagedList<Product>> result = await _productRepository.GetAllProductsAsync(query, ct);
+        PagedList<Product> page = await _productService.GetPagedAsync(query, ct);
 
-        // Listing has no expected failure, so a failed result is an unexpected error (HTTP 500).
-        if (!result.IsSuccess)
-        {
-            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Message)));
-        }
-
-        await Send.ResponseAsync(result.Value.Adapt<PagedList<ProductDto>>(), cancellation: ct);
+        await Send.ResponseAsync(page.Adapt<PagedList<ProductDto>>(), cancellation: ct);
     }
 }

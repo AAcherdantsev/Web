@@ -1,52 +1,37 @@
-using FluentResults;
-using Web.Application.Products;
 using Web.Domain.Entities;
 
 namespace Web.Application.Common.Repositories;
 
 /// <summary>
-///     Repository interface for managing products.
+///     Stores and loads products. It does not check business rules: the application services do that.
 /// </summary>
-/// <remarks>
-///     Expected outcomes (such as "not found" or invalid input) are returned as failed <see cref="Result" />s.
-///     Unexpected failures (such as a lost database connection) are thrown as exceptions.
-/// </remarks>
 public interface IProductRepository
 {
     /// <summary>
-    ///     Retrieves all products.
+    ///     Gets all products in the order of creation.
     /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task<Result<IEnumerable<Product>>> GetAllProductsAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Retrieves a paginated list of products based on the query.
+    ///     Gets one page of products in the order of creation.
     /// </summary>
-    /// <param name="query">The pagination query parameters.</param>
+    /// <param name="pageNumber">The zero-based page number.</param>
+    /// <param name="pageSize">The number of products per page.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task<Result<PagedList<Product>>> GetAllProductsAsync(GetPagedProductsQuery query,
-        CancellationToken cancellationToken);
+    Task<PagedList<Product>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Retrieves a product by its ID.
+    ///     Gets the product with the given identifier, or <see langword="null" /> when there is none.
     /// </summary>
-    /// <param name="productId">The ID of the product.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task<Result<Product>> GetProductByIdAsync(int productId, CancellationToken cancellationToken);
+    Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Creates a new product.
+    ///     Stores a new product and assigns its identifier.
     /// </summary>
-    /// <param name="command">The command containing product details.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task<Result<Product>> CreateProductAsync(CreateProductCommand command, CancellationToken cancellationToken);
+    Task AddAsync(Product product, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Updates the description of an existing product.
+    ///     Stores the changes of an existing product.
     /// </summary>
-    /// <param name="productId">The ID of the product to update.</param>
-    /// <param name="description">The new description.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    Task<Result<Product>> UpdateProductDescriptionAsync(int productId, string description,
-        CancellationToken cancellationToken);
+    Task UpdateAsync(Product product, CancellationToken cancellationToken);
 }

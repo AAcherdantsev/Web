@@ -6,8 +6,9 @@ using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Common.Errors;
-using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
+
+using Web.Application.Products;
 
 namespace Web.Api.Features.Products.GetProduct;
 
@@ -16,15 +17,15 @@ namespace Web.Api.Features.Products.GetProduct;
 /// </summary>
 public sealed class GetProductEndpoint : EndpointWithoutRequest<ProductDto>
 {
-    private readonly IProductRepository _productRepository;
+    private readonly IProductService _productService;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="GetProductEndpoint" /> class.
     /// </summary>
-    /// <param name="productRepository">The repository used to access product data.</param>
-    public GetProductEndpoint(IProductRepository productRepository)
+    /// <param name="productService">The repository used to access product data.</param>
+    public GetProductEndpoint(IProductService productService)
     {
-        _productRepository = productRepository;
+        _productService = productService;
     }
 
     /// <summary>
@@ -53,7 +54,7 @@ public sealed class GetProductEndpoint : EndpointWithoutRequest<ProductDto>
     public override async Task HandleAsync(CancellationToken ct)
     {
         int productId = Route<int>("id");
-        Result<Product> result = await _productRepository.GetProductByIdAsync(productId, ct);
+        Result<Product> result = await _productService.GetByIdAsync(productId, ct);
 
         if (result.IsSuccess)
         {

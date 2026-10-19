@@ -1,9 +1,9 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using FluentResults;
 using Moq;
 using Web.Api.Tests.IntegrationTests;
+using Web.Api.Tests.TestData;
 using Web.Application.Common.Errors;
 using Web.Domain.Entities;
 
@@ -13,71 +13,42 @@ namespace Web.Api.Tests.Endpoints.V1;
 public class PatchProductEndpointTests : IntegrationTestBase
 {
     [Test]
-    public async Task PatchProduct_UpdatesDescription_WhenRepositoryIsSuccessful()
+    public async Task PatchProduct_ReturnsTheUpdatedProduct()
     {
         // Arrange
-        const int productId = 1;
-        const string newDescription = "Updated description";
-
-        Product domainProduct = new()
-        {
-            Id = productId,
-            Name = "Test Product",
-            ImgUri = "http://image",
-            Price = 10,
-            Description = newDescription,
-            CreatedAt = DateTimeOffset.UtcNow,
-            LastUpdatedAt = DateTimeOffset.UtcNow
-        };
-
-        string json = JsonSerializer.Serialize(new { Description = newDescription });
-        StringContent content = new(json, Encoding.UTF8, "application/json");
-
-        RepositoryMock
-            .Setup(r => r.UpdateProductDescriptionAsync(productId, newDescription, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Ok(domainProduct));
+        ServiceMock.Setup(s => s.UpdateDescriptionAsync(4, "New text", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Ok(TestProducts.Create(4, "Phone", 10, "New text")));
 
         // Act
-        HttpResponseMessage response = await Client.PatchAsync($"/v1/products/{productId}", content);
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",
+            "{\"description\":\"New text\"}");
+        using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        RepositoryMock.Verify(
-            r => r.UpdateProductDescriptionAsync(productId, newDescription, It.IsAny<CancellationToken>()),
-            Times.Once);
+        Assert.That(document.RootElement.GetProperty("description").GetString(), Is.EqualTo("New text"));
     }
 
     [Test]
-    public async Task PatchProduct_ReturnsNotFound_WhenProductDoesNotExist()
+    public async Task PatchProduct_WithNullDescription_Returns400AndDoesNotCallTheService()
     {
-        // Arrange
-        RepositoryMock
-            .Setup(r => r.UpdateProductDescriptionAsync(999, "text", It.IsAny<CancellationToken>()))
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",
+            "{\"description\":null}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        ServiceMock.Verify(s => s.UpdateDescriptionAsync(It.IsAny<int>(), It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task PatchProduct_WhenMissing_Returns404()
+    {
+        ServiceMock.Setup(s => s.UpdateDescriptionAsync(4, "x", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
 
-        string json = JsonSerializer.Serialize(new { Description = "text" });
-        StringContent content = new(json, Encoding.UTF8, "application/json");
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",
+            "{\"description\":\"x\"}");
 
-        // Act
-        HttpResponseMessage response = await Client.PatchAsync("/v1/products/999", content);
-
-        // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-    }
-
-    [Test]
-    public async Task PatchProduct_ReturnsBadRequest_WhenDescriptionIsMissing()
-    {
-        // Arrange
-        StringContent content = new("{}", Encoding.UTF8, "application/json");
-
-        // Act
-        HttpResponseMessage response = await Client.PatchAsync("/v1/products/1", content);
-
-        // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        RepositoryMock.Verify(
-            r => r.UpdateProductDescriptionAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 }
