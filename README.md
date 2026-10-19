@@ -81,10 +81,10 @@ The data source is set by the `DataSource` setting:
 
 ### Option 1: mock data (no database)
 
-Run the API project with `DataSource` set to `Mock`:
+Run the API project:
 
 ```bash
-DataSource=Mock dotnet run --project src/Web.Api
+dotnet run --project src/Web.Api
 ```
 
 Swagger UI is then available at **http://localhost:5211/swagger**. The HTTPS profile of the launch settings uses **https://localhost:7252/swagger**.
@@ -100,6 +100,21 @@ In the IDE, run the `http` profile of `Web.Api`. It uses the mock data source, b
    dotnet user-secrets set "Parameters:sql-password" "MyStrongP@ssw0rd"
    cd ../..
    ```
+There is also the option to set a password via the UI after launching .NET Aspire:
+
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/38f509cc-feed-4bfa-8a2d-07343c512f66" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/e8568cd1-63e9-4efb-a3e6-2d5c0b3bc467" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/032b513a-a7e9-40c6-baa1-be89cafc75be" />
+<img width="2838" height="1892" alt="image" src="https://github.com/user-attachments/assets/1a6d156c-bac3-49f1-b515-2692da007288" />
+
+Starting the database and applying migrations may take some time. While the process is underway, the “unhealthy” indicator will be visible.
+<img width="1419" height="946" alt="image" src="https://github.com/user-attachments/assets/73c2fdf3-6356-49ae-b797-eebd8f6ea90d" />
+
+If Docker and Aspire Workload are installed, the database container will start up, and the API will begin working:
+<img width="1419" height="946" alt="image" src="https://github.com/user-attachments/assets/7197c9e7-2be4-4f34-a3ae-fda3d09555e5" />
+
+
+
 
 2. **Start the solution** from the root folder of this project:
 
