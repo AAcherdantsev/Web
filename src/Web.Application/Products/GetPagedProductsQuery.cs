@@ -3,7 +3,7 @@ namespace Web.Application.Products;
 /// <summary>
 ///     Query for retrieving a paginated list of products.
 /// </summary>
-public class GetPagedProductsQuery
+public sealed class GetPagedProductsQuery
 {
     /// <summary>
     ///     The zero-based page number.

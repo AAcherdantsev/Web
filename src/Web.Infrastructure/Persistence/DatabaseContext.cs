@@ -9,7 +9,7 @@ namespace Web.Infrastructure.Persistence;
 /// <summary>
 ///     Entity Framework Core database context for managing product entities.
 /// </summary>
-internal class DatabaseContext : DbContext
+internal sealed class DatabaseContext : DbContext
 {
     /// <summary>
     ///     Creates a new instance of the <see cref="DatabaseContext" /> class with the specified options.

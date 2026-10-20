@@ -34,27 +34,50 @@ public static class ProductValidation
     public static readonly string DESCRIPTION_TOO_LONG = ProductRules.DESCRIPTION_TOO_LONG;
 
     /// <inheritdoc cref="ProductRules.IsNameProvided" />
-    public static bool IsNameProvided(string? name) => ProductRules.IsNameProvided(name);
+    public static bool IsNameProvided(string? name)
+    {
+        return ProductRules.IsNameProvided(name);
+    }
 
     /// <inheritdoc cref="ProductRules.IsNameWithinLimit" />
-    public static bool IsNameWithinLimit(string? name) => ProductRules.IsNameWithinLimit(name);
+    public static bool IsNameWithinLimit(string? name)
+    {
+        return ProductRules.IsNameWithinLimit(name);
+    }
 
     /// <inheritdoc cref="ProductRules.IsPricePositive" />
-    public static bool IsPricePositive(decimal price) => ProductRules.IsPricePositive(price);
+    public static bool IsPricePositive(decimal price)
+    {
+        return ProductRules.IsPricePositive(price);
+    }
 
     /// <inheritdoc cref="ProductRules.IsPriceWithinLimit" />
-    public static bool IsPriceWithinLimit(decimal price) => ProductRules.IsPriceWithinLimit(price);
+    public static bool IsPriceWithinLimit(decimal price)
+    {
+        return ProductRules.IsPriceWithinLimit(price);
+    }
 
     /// <inheritdoc cref="ProductPrice.HasAtMostTwoDecimalPlaces" />
-    public static bool HasAtMostTwoDecimalPlaces(decimal price) => ProductPrice.HasAtMostTwoDecimalPlaces(price);
+    public static bool HasAtMostTwoDecimalPlaces(decimal price)
+    {
+        return ProductPrice.HasAtMostTwoDecimalPlaces(price);
+    }
 
     /// <inheritdoc cref="ProductRules.IsImgUriValid" />
-    public static bool IsImgUriValid(string? imgUri) => ProductRules.IsImgUriValid(imgUri);
+    public static bool IsImgUriValid(string? imgUri)
+    {
+        return ProductRules.IsImgUriValid(imgUri);
+    }
 
     /// <inheritdoc cref="ProductRules.IsImgUriWithinLimit" />
-    public static bool IsImgUriWithinLimit(string? imgUri) => ProductRules.IsImgUriWithinLimit(imgUri);
+    public static bool IsImgUriWithinLimit(string? imgUri)
+    {
+        return ProductRules.IsImgUriWithinLimit(imgUri);
+    }
 
     /// <inheritdoc cref="ProductRules.IsDescriptionWithinLimit" />
-    public static bool IsDescriptionWithinLimit(string? description) =>
-        ProductRules.IsDescriptionWithinLimit(description);
+    public static bool IsDescriptionWithinLimit(string? description)
+    {
+        return ProductRules.IsDescriptionWithinLimit(description);
+    }
 }

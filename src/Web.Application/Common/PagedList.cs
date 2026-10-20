@@ -4,7 +4,7 @@ namespace Web.Application.Common;
 ///     Represents one page of a list, with the information a client needs to request the other pages.
 /// </summary>
 /// <typeparam name="T">The type of elements contained in the list.</typeparam>
-public class PagedList<T>
+public sealed class PagedList<T>
 {
     /// <summary>
     ///     Initializes a new instance of the <see cref="PagedList{T}" /> class with the specified values, total count, page

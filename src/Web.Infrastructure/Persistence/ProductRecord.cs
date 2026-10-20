@@ -7,7 +7,7 @@ namespace Web.Infrastructure.Persistence;
 ///     The stored form of a product. Entity Framework Core maps this class to the <c>Products</c> table, and the
 ///     domain entity <see cref="Product" /> stays free of persistence concerns. The mock store keeps the same records.
 /// </summary>
-internal class ProductRecord
+internal sealed class ProductRecord
 {
     /// <summary>
     ///     The unique identifier, assigned by the store.

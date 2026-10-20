@@ -3,7 +3,7 @@ namespace Web.Application.Products;
 /// <summary>
 ///     Command to create a new product with the specified properties.
 /// </summary>
-public record CreateProductCommand
+public sealed record CreateProductCommand
 {
     /// <summary>
     ///     The name of the product to be created.

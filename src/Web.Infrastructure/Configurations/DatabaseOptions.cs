@@ -3,7 +3,7 @@ namespace Web.Infrastructure.Configurations;
 /// <summary>
 ///     Database startup settings. Bound from the <c>Database</c> configuration section.
 /// </summary>
-public class DatabaseOptions
+public sealed class DatabaseOptions
 {
     /// <summary>
     ///     The configuration section name.

@@ -14,7 +14,7 @@ namespace Web.Infrastructure.Persistence.Repositories;
 ///     Stores products in SQL Server through Entity Framework Core. The domain entities are converted to and from
 ///     <see cref="ProductRecord" />, which is the only type that the database context knows.
 /// </summary>
-internal class ProductRepository : IProductRepository
+internal sealed class ProductRepository : IProductRepository
 {
     private readonly DatabaseContext _context;
     private readonly ILogger<ProductRepository> _logger;

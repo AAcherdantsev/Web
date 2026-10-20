@@ -68,12 +68,11 @@ public class ProductTests
         InvalidProductException exception = Assert.Throws<InvalidProductException>(() =>
             new Product("", "not a uri", 0, "", CreatedAt))!;
 
-        Assert.That(exception.Violations, Is.EquivalentTo(new[]
-        {
-            ProductRules.NAME_EMPTY,
-            ProductRules.PRICE_NOT_POSITIVE,
-            ProductRules.IMG_URI_INVALID
-        }));
+        Assert.That(exception.Violations,
+            Is.EquivalentTo(new[]
+            {
+                ProductRules.NAME_EMPTY, ProductRules.PRICE_NOT_POSITIVE, ProductRules.IMG_URI_INVALID
+            }));
     }
 
     [Test]

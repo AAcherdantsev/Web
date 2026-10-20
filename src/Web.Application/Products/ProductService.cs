@@ -78,7 +78,8 @@ public sealed class ProductService : IProductService
     }
 
     /// <inheritdoc />
-    public async Task<Result<ProductModel>> CreateAsync(CreateProductCommand command, CancellationToken cancellationToken)
+    public async Task<Result<ProductModel>> CreateAsync(CreateProductCommand command,
+        CancellationToken cancellationToken)
     {
         string description = command.Description ?? string.Empty;
 

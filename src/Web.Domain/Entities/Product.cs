@@ -6,7 +6,7 @@ namespace Web.Domain.Entities;
 ///     Domain entity representing a product. Its values change only through the methods of this class, and every
 ///     value is checked against <see cref="ProductRules" /> when it is set.
 /// </summary>
-public class Product : BaseEntity
+public sealed class Product : BaseEntity
 {
     /// <summary>
     ///     Creates a new product that has not been stored yet.
@@ -42,11 +42,7 @@ public class Product : BaseEntity
     public static Product Restore(int id, string name, string imgUri, decimal price, string description,
         DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt)
     {
-        return new(name, imgUri, price, description, createdAt)
-        {
-            Id = id,
-            LastUpdatedAt = lastUpdatedAt
-        };
+        return new(name, imgUri, price, description, createdAt) { Id = id, LastUpdatedAt = lastUpdatedAt };
     }
 
     /// <summary>
