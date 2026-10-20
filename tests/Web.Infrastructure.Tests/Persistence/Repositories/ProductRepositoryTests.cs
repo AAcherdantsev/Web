@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Web.Application.Common;
+using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
 using Web.Infrastructure.Persistence;
 using Web.Infrastructure.Persistence.Repositories;
@@ -10,7 +11,8 @@ namespace Web.Infrastructure.Tests.Persistence.Repositories;
 
 /// <summary>
 ///     Tests the storage behaviour of <see cref="ProductRepository" /> with the EF Core in-memory provider.
-///     The business rules are tested in the Application tests.
+///     The business rules are tested in the Domain tests. Row-version conflicts need a real database, so they are
+///     tested in <c>SqlServerProductRepositoryTests</c>.
 /// </summary>
 [TestFixture]
 public class ProductRepositoryTests
@@ -42,8 +44,8 @@ public class ProductRepositoryTests
     {
         // Arrange
         _context.Products.AddRange(
-            new Product("Second", "https://example.com/2.jpg", 2, "", Created.AddHours(1)),
-            new Product("First", "https://example.com/1.jpg", 1, "", Created));
+            Record(new("Second", "https://example.com/2.jpg", 2, "", Created.AddHours(1))),
+            Record(new("First", "https://example.com/1.jpg", 1, "", Created)));
         await _context.SaveChangesAsync();
 
         // Act
@@ -94,33 +96,33 @@ public class ProductRepositoryTests
         await AddProductsAsync(1);
         int id = _context.Products.Single().Id;
 
-        Product? product = await _repository.FindByIdAsync(id, CancellationToken.None);
+        VersionedProduct? found = await _repository.FindByIdAsync(id, CancellationToken.None);
 
-        Assert.That(product?.Name, Is.EqualTo("Product 1"));
+        Assert.That(found?.Product.Name, Is.EqualTo("Product 1"));
     }
 
     [Test]
     public async Task FindByIdAsync_WithMissingProduct_ReturnsNull()
     {
-        Product? product = await _repository.FindByIdAsync(999, CancellationToken.None);
+        VersionedProduct? found = await _repository.FindByIdAsync(999, CancellationToken.None);
 
-        Assert.That(product, Is.Null);
+        Assert.That(found, Is.Null);
     }
 
     [Test]
-    public async Task AddAsync_StoresProductAndAssignsItsId()
+    public async Task AddAsync_StoresProductAndReturnsItWithItsId()
     {
         // Arrange
         Product product = new("Phone", "https://example.com/phone.jpg", 10, "A phone", Created);
 
         // Act
-        await _repository.AddAsync(product, CancellationToken.None);
+        Product stored = await _repository.AddAsync(product, CancellationToken.None);
 
         // Assert
-        Assert.That(product.Id, Is.GreaterThan(0));
-        Product stored = await _context.Products.AsNoTracking().SingleAsync();
-        Assert.That(stored.Name, Is.EqualTo("Phone"));
-        Assert.That(stored.Description, Is.EqualTo("A phone"));
+        Assert.That(stored.Id, Is.GreaterThan(0));
+        ProductRecord record = await _context.Products.AsNoTracking().SingleAsync();
+        Assert.That(record.Name, Is.EqualTo("Phone"));
+        Assert.That(record.Description, Is.EqualTo("A phone"));
     }
 
     [Test]
@@ -128,24 +130,31 @@ public class ProductRepositoryTests
     {
         // Arrange
         await AddProductsAsync(1);
-        Product product = (await _repository.FindByIdAsync(_context.Products.Single().Id, CancellationToken.None))!;
+        VersionedProduct read = (await _repository.FindByIdAsync(_context.Products.Single().Id,
+            CancellationToken.None))!;
         DateTimeOffset updatedAt = Created.AddDays(1);
-        product.ChangeDescription("Changed", updatedAt);
+        read.Product.ChangeDescription("Changed", updatedAt);
 
         // Act
-        await _repository.UpdateAsync(product, CancellationToken.None);
+        Product updated = await _repository.UpdateAsync(read, CancellationToken.None);
 
         // Assert
-        Product stored = await _context.Products.AsNoTracking().SingleAsync();
+        Assert.That(updated.Description, Is.EqualTo("Changed"));
+        ProductRecord stored = await _context.Products.AsNoTracking().SingleAsync();
         Assert.That(stored.Description, Is.EqualTo("Changed"));
         Assert.That(stored.LastUpdatedAt, Is.EqualTo(updatedAt));
+    }
+
+    private static ProductRecord Record(Product product)
+    {
+        return ProductRecord.FromDomain(product, []);
     }
 
     private async Task AddProductsAsync(int count)
     {
         for (int i = 1; i <= count; i++)
         {
-            _context.Products.Add(new($"Product {i}", "https://example.com/p.jpg", i, "", Created));
+            _context.Products.Add(Record(new($"Product {i}", "https://example.com/p.jpg", i, "", Created)));
         }
 
         await _context.SaveChangesAsync();

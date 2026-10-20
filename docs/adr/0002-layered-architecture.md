@@ -25,9 +25,9 @@ The API never uses EF Core types directly, and the Application layer never refer
 - Business rules live in the Domain layer. Both the EF Core and the mock repositories only store products, so a rule cannot differ between the data sources.
 - The data source can be changed without touching the endpoints (see [0006](0006-selectable-data-source.md)).
 - The composition root is the place that knows about Infrastructure, which is the standard arrangement for ASP.NET Core applications. If the exception becomes a problem, the registration code can move to its own project.
-- `Product` is both the domain entity and the EF Core entity. A separate persistence model would add mapping code without a clear benefit for this CRUD scope. If the domain grows, this decision should be revisited.
+- `Product` is the domain entity. The EF Core entity is a separate persistence model, `ProductRecord`, which was introduced later (see [0024](0024-separate-persistence-model.md)). This decision was revisited when the row version was found to be a persistence concern.
 
 ## Alternatives considered
 
 - **Single project with folders.** Simpler, but nothing enforces the dependency rules, and that is the main benefit of the split.
-- **Separate persistence model.** More code to map between two models. Rejected for now because the domain is simple.
+- **Separate persistence model.** More code to map between two models. Rejected at first because the domain was simple. Adopted later, see [0024](0024-separate-persistence-model.md).

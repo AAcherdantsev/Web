@@ -70,11 +70,11 @@ public sealed class ProductService : IProductService
     /// <inheritdoc />
     public async Task<Result<ProductModel>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
-        Product? product = await _repository.FindByIdAsync(id, cancellationToken);
+        VersionedProduct? stored = await _repository.FindByIdAsync(id, cancellationToken);
 
-        return product is null
+        return stored is null
             ? Result.Fail(new NotFoundError(PRODUCT_NOT_FOUND))
-            : Result.Ok(ToModel(product));
+            : Result.Ok(ToModel(stored.Product));
     }
 
     /// <inheritdoc />
@@ -108,18 +108,18 @@ public sealed class ProductService : IProductService
             return Result.Fail(violations.Select(v => new ValidationError(v)));
         }
 
-        Product? product = await _repository.FindByIdAsync(command.Id, cancellationToken);
-        if (product is null)
+        VersionedProduct? current = await _repository.FindByIdAsync(command.Id, cancellationToken);
+        if (current is null)
         {
             return Result.Fail(new NotFoundError(PRODUCT_NOT_FOUND));
         }
 
-        product.ChangeDescription(description, _timeProvider.GetUtcNow());
+        current.Product.ChangeDescription(description, _timeProvider.GetUtcNow());
 
         try
         {
-            Product stored = await _repository.UpdateAsync(product, cancellationToken);
-            return Result.Ok(ToModel(stored));
+            Product updated = await _repository.UpdateAsync(current, cancellationToken);
+            return Result.Ok(ToModel(updated));
         }
         catch (ProductConflictException)
         {

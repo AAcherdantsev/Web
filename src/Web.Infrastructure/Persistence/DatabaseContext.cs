@@ -28,15 +28,16 @@ internal class DatabaseContext : DbContext
     }
 
     /// <summary>
-    ///     Gets or sets the products in the database.
+    ///     Gets or sets the stored products.
     /// </summary>
-    public DbSet<Product> Products { get; set; }
+    public DbSet<ProductRecord> Products { get; set; }
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Product>(entity =>
+        modelBuilder.Entity<ProductRecord>(entity =>
         {
+            entity.ToTable("Products");
             entity.Property(p => p.Name).HasMaxLength(ProductLimits.MAX_NAME_LENGTH);
             entity.Property(p => p.ImgUri).HasMaxLength(ProductLimits.MAX_IMG_URI_LENGTH);
             entity.Property(p => p.Description).HasMaxLength(ProductLimits.MAX_DESCRIPTION_LENGTH);

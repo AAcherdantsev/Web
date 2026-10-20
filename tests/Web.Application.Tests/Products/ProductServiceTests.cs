@@ -16,6 +16,7 @@ namespace Web.Application.Tests.Products;
 public class ProductServiceTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 19, 12, 0, 0, TimeSpan.Zero);
+    private static readonly byte[] Version = [1];
 
     private Mock<IProductRepository> _repository = null!;
     private FakeTimeProvider _timeProvider = null!;
@@ -31,8 +32,8 @@ public class ProductServiceTests
         // The store returns the product it was given, as the real stores do
         _repository.Setup(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product p, CancellationToken _) => p);
-        _repository.Setup(r => r.UpdateAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Product p, CancellationToken _) => p);
+        _repository.Setup(r => r.UpdateAsync(It.IsAny<VersionedProduct>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((VersionedProduct v, CancellationToken _) => v.Product);
     }
 
     [Test]
@@ -65,7 +66,8 @@ public class ProductServiceTests
     [Test]
     public async Task GetByIdAsync_WhenMissing_FailsWithNotFound()
     {
-        _repository.Setup(r => r.FindByIdAsync(7, It.IsAny<CancellationToken>())).ReturnsAsync((Product?) null);
+        _repository.Setup(r => r.FindByIdAsync(7, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((VersionedProduct?) null);
 
         Result<ProductModel> result = await _service.GetByIdAsync(7, CancellationToken.None);
 
@@ -73,24 +75,25 @@ public class ProductServiceTests
     }
 
     [Test]
-    public async Task UpdateDescriptionAsync_WhenValid_ChangesDescriptionAndStampsTheChange()
+    public async Task UpdateDescriptionAsync_WhenValid_ChangesDescriptionAndPassesTheReadVersion()
     {
         Product product = new("Phone", "https://example.com/p.jpg", 10, "old", Now.AddDays(-1));
-        _repository.Setup(r => r.FindByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        SetupFind(1, product);
 
         Result<ProductModel> result =
             await _service.UpdateDescriptionAsync(new() { Id = 1, Description = "new" }, CancellationToken.None);
 
         Assert.That(result.Value.Description, Is.EqualTo("new"));
         Assert.That(result.Value.LastUpdatedAt, Is.EqualTo(Now));
-        _repository.Verify(r => r.UpdateAsync(product, It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.UpdateAsync(
+            It.Is<VersionedProduct>(v => v.Product == product && v.Version.SequenceEqual(Version)),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
     public async Task UpdateDescriptionAsync_WithNullDescription_StoresEmptyDescription()
     {
-        Product product = new("Phone", "https://example.com/p.jpg", 10, "old", Now);
-        _repository.Setup(r => r.FindByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(product);
+        SetupFind(1, new("Phone", "https://example.com/p.jpg", 10, "old", Now));
 
         Result<ProductModel> result =
             await _service.UpdateDescriptionAsync(new() { Id = 1, Description = null }, CancellationToken.None);
@@ -113,21 +116,22 @@ public class ProductServiceTests
     [Test]
     public async Task UpdateDescriptionAsync_WhenMissing_FailsWithNotFoundAndStoresNothing()
     {
-        _repository.Setup(r => r.FindByIdAsync(9, It.IsAny<CancellationToken>())).ReturnsAsync((Product?) null);
+        _repository.Setup(r => r.FindByIdAsync(9, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((VersionedProduct?) null);
 
         Result<ProductModel> result =
             await _service.UpdateDescriptionAsync(new() { Id = 9, Description = "text" }, CancellationToken.None);
 
         Assert.That(result.HasError<NotFoundError>(), Is.True);
-        _repository.Verify(r => r.UpdateAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repository.Verify(r => r.UpdateAsync(It.IsAny<VersionedProduct>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Test]
     public async Task UpdateDescriptionAsync_WhenTheStoreReportsAConflict_FailsWithConflict()
     {
-        Product product = new("Phone", "https://example.com/p.jpg", 10, "old", Now);
-        _repository.Setup(r => r.FindByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(product);
-        _repository.Setup(r => r.UpdateAsync(product, It.IsAny<CancellationToken>()))
+        SetupFind(1, new("Phone", "https://example.com/p.jpg", 10, "old", Now));
+        _repository.Setup(r => r.UpdateAsync(It.IsAny<VersionedProduct>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ProductConflictException(1));
 
         Result<ProductModel> result =
@@ -161,5 +165,11 @@ public class ProductServiceTests
         Assert.That(result.HasError<ValidationError>(), Is.True);
         _repository.Verify(r => r.GetPagedAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    private void SetupFind(int id, Product product)
+    {
+        _repository.Setup(r => r.FindByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VersionedProduct(product, Version));
     }
 }

@@ -21,20 +21,22 @@ public interface IProductRepository
     Task<PagedList<Product>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Gets the product with the given identifier, or <see langword="null" /> when there is none.
+    ///     Gets the product with the given identifier and the version it has now, or <see langword="null" /> when there
+    ///     is none. The version must be passed back to <see cref="UpdateAsync" />.
     /// </summary>
-    Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken);
+    Task<VersionedProduct?> FindByIdAsync(int id, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Stores a new product and returns the stored product with its identifier and row version.
+    ///     Stores a new product and returns the stored product with its identifier.
     /// </summary>
     Task<Product> AddAsync(Product product, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Stores the changes of an existing product and returns the stored product with its new row version.
+    ///     Stores the changes of a product that was read at the version in <paramref name="product" />, and returns the
+    ///     stored product.
     /// </summary>
     /// <exception cref="ProductConflictException">
     ///     Thrown when the product changed after it was read, or when it no longer exists.
     /// </exception>
-    Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken);
+    Task<Product> UpdateAsync(VersionedProduct product, CancellationToken cancellationToken);
 }

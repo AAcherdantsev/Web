@@ -28,6 +28,7 @@ Records are numbered and never deleted. When a decision changes, add a new recor
 | [0020](0020-semantic-versioning-with-gitversion.md) | Semantic versions calculated from git history with GitVersion | Accepted |
 | [0021](0021-optimistic-concurrency-with-row-version.md) | Optimistic concurrency with a row version (409 on conflict) | Accepted |
 | [0022](0022-domain-entity-enforces-invariants.md) | The domain entity enforces its invariants | Accepted |
+| [0024](0024-separate-persistence-model.md) | Separate persistence model in the Infrastructure layer | Accepted |
 
 ## Template
 

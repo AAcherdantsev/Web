@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Logging;
 using Web.Application.Common;
 using Web.Application.Common.Repositories;
@@ -10,7 +11,8 @@ using Web.Domain.Entities;
 namespace Web.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-///     Stores products in SQL Server through Entity Framework Core.
+///     Stores products in SQL Server through Entity Framework Core. The domain entities are converted to and from
+///     <see cref="ProductRecord" />, which is the only type that the database context knows.
 /// </summary>
 internal class ProductRepository : IProductRepository
 {
@@ -31,10 +33,12 @@ internal class ProductRepository : IProductRepository
     {
         _logger.LogInformation("Getting all products...");
 
-        return await _context.Products
+        List<ProductRecord> records = await _context.Products
             .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
+
+        return records.Select(r => r.ToDomain()).ToList();
     }
 
     /// <inheritdoc />
@@ -43,59 +47,73 @@ internal class ProductRepository : IProductRepository
     {
         _logger.LogInformation("Getting a page of products...");
 
-        IQueryable<Product> products = _context.Products
+        IQueryable<ProductRecord> records = _context.Products
             .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
             .AsNoTracking();
 
-        int totalCount = await products.CountAsync(cancellationToken);
+        int totalCount = await records.CountAsync(cancellationToken);
 
-        List<Product> values = await products
+        List<ProductRecord> values = await records
             .Skip(pageNumber * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new(values, totalCount, pageNumber, pageSize);
+        return new(values.Select(r => r.ToDomain()), totalCount, pageNumber, pageSize);
     }
 
     /// <inheritdoc />
-    public async Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<VersionedProduct?> FindByIdAsync(int id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Getting product with ID {productId}...", id);
 
-        // Tracked, so that the changes made by the application service are saved by UpdateAsync
-        return await _context.Products.FindAsync([id], cancellationToken);
+        // Not tracked: the version is passed back to UpdateAsync explicitly, so no change is saved behind the caller's back
+        ProductRecord? record = await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+        return record?.ToVersioned();
     }
 
     /// <inheritdoc />
     public async Task<Product> AddAsync(Product product, CancellationToken cancellationToken)
     {
-        await _context.Products.AddAsync(product, cancellationToken);
+        ProductRecord record = ProductRecord.FromDomain(product, []);
+
+        _context.Products.Add(record);
         await _context.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Product {product} created successfully", product);
-        return product;
+        _logger.LogInformation("Product {ProductId} created successfully", record.Id);
+        return record.ToDomain();
     }
 
     /// <inheritdoc />
-    public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken)
+    public async Task<Product> UpdateAsync(VersionedProduct product, CancellationToken cancellationToken)
     {
-        if (_context.Entry(product).State == EntityState.Detached)
+        // The record carries the version that was read, so the UPDATE matches no row when another change was saved since
+        ProductRecord record = ProductRecord.FromDomain(product.Product, product.Version);
+
+        // A record with the same key may still be tracked, for example one that AddAsync stored in this context.
+        // It is detached, so that the record of this update can be attached.
+        foreach (EntityEntry<ProductRecord> tracked in _context.ChangeTracker.Entries<ProductRecord>()
+                     .Where(entry => entry.Entity.Id == record.Id)
+                     .ToList())
         {
-            _context.Products.Update(product);
+            tracked.State = EntityState.Detached;
         }
+
+        _context.Products.Update(record);
 
         try
         {
-            // The UPDATE checks the row version that was read, so a change saved in between makes it match no row
             await _context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            _logger.LogWarning("Product with ID {ProductId} was changed by another request", product.Id);
-            throw new ProductConflictException(product.Id);
+            _logger.LogWarning("Product with ID {ProductId} was changed by another request", record.Id);
+            throw new ProductConflictException(record.Id);
         }
 
-        _logger.LogInformation("Product {ProductId} updated successfully", product.Id);
-        return product;
+        _logger.LogInformation("Product {ProductId} updated successfully", record.Id);
+        return record.ToDomain();
     }
 }

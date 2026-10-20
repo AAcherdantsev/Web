@@ -11,7 +11,8 @@ The assignment does not ask for locking, and the write is short. A reviewer will
 
 ## Decision
 
-* Each product has a `RowVersion`, a SQL Server `rowversion` column that the database changes on every update. The Domain entity exposes it as `byte[] RowVersion`, and EF Core maps it with `IsRowVersion()`.
+* Each product row has a `RowVersion`, a SQL Server `rowversion` column that the database changes on every update. The persistence record `ProductRecord` holds it, and EF Core maps it with `IsRowVersion()`. The domain entity has no version (see [0024](0024-separate-persistence-model.md)).
+* The store returns the version with the product in a `VersionedProduct`. The application service passes it back unchanged when it saves the product.
 * An update saves the product with the version that was read. If another request saved the product in between, no row matches the `UPDATE`. EF Core raises `DbUpdateConcurrencyException`, and the repository throws `ProductConflictException`.
 * The service turns that exception into a `ConflictError`, and the endpoint returns `409 Conflict` as RFC 7807 problem details. The client reads the product again and sends the update again.
 * The `Mock` store uses its own version counter and makes the same check. It throws the same exception for a stale copy and for a product that does not exist, so both data sources behave the same way.

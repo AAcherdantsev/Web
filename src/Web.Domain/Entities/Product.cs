@@ -42,18 +42,17 @@ public class Product : BaseEntity
 
     /// <summary>
     ///     Rebuilds a product from the values held by a store. Only the persistence adapters call this, because the
-    ///     identifier and the row version are assigned by the store. The values are checked against the same rules as
-    ///     a new product. The application layer never calls this method.
+    ///     identifier is assigned by the store. The values are checked against the same rules as a new product, and the
+    ///     application layer never calls this method.
     /// </summary>
     /// <exception cref="InvalidProductException">Thrown when a stored value breaks a business rule.</exception>
     public static Product Restore(int id, string name, string imgUri, decimal price, string description,
-        DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt, byte[] rowVersion)
+        DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt)
     {
         return new(name, imgUri, price, description, createdAt)
         {
             Id = id,
-            LastUpdatedAt = lastUpdatedAt,
-            RowVersion = rowVersion
+            LastUpdatedAt = lastUpdatedAt
         };
     }
 
@@ -86,12 +85,6 @@ public class Product : BaseEntity
     ///     Date and time of the last change.
     /// </summary>
     public DateTimeOffset LastUpdatedAt { get; private set; }
-
-    /// <summary>
-    ///     Version of the stored product. The store changes it on every update, and it rejects an update whose version
-    ///     is no longer the stored one, because another change was saved in between.
-    /// </summary>
-    public byte[] RowVersion { get; private set; } = [];
 
     /// <summary>
     ///     Replaces the description of the product and records the time of the change.

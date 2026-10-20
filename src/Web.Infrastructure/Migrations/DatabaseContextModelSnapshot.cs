@@ -22,7 +22,7 @@ namespace Web.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Web.Domain.Entities.Product", b =>
+            modelBuilder.Entity("Web.Infrastructure.Persistence.ProductRecord", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -65,7 +65,7 @@ namespace Web.Infrastructure.Migrations
 
                     b.HasIndex("CreatedAt", "Id");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 #pragma warning restore 612, 618
         }

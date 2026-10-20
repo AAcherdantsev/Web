@@ -101,7 +101,9 @@ public static class DatabaseInitializer
                 return;
             }
 
-            context.Products.AddRange(ProductSeedData.CreateProducts(timeProvider.GetUtcNow()));
+            IEnumerable<ProductRecord> examples = ProductSeedData.CreateProducts(timeProvider.GetUtcNow())
+                .Select(product => ProductRecord.FromDomain(product, []));
+            context.Products.AddRange(examples);
             await context.SaveChangesAsync();
             await transaction.CommitAsync();
         });
