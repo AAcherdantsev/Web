@@ -2,18 +2,25 @@ using Microsoft.Extensions.Logging;
 using Web.Application.Common;
 using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
+using Web.Infrastructure.Persistence;
 
 namespace Web.Infrastructure.Mock;
 
 /// <summary>
 ///     In-memory product store, pre-filled with sample products. Used by the Mock data source and by tests.
 /// </summary>
+/// <remarks>
+///     The store keeps the same records as the database and behaves like it: every read returns a new domain product,
+///     so changes are saved only through <see cref="UpdateAsync" />. An update fails with
+///     <see cref="ProductConflictException" /> when the version is no longer the stored one.
+/// </remarks>
 internal class MockProductRepository : IProductRepository
 {
     private readonly object _lock = new();
     private readonly ILogger<MockProductRepository> _logger;
-    private readonly List<Product> _products;
+    private readonly List<ProductRecord> _records = [];
     private int _lastId;
+    private long _lastRowVersion;
 
     /// <summary>
     ///     Creates a new instance of the <see cref="MockProductRepository" /> class with the sample products.
@@ -23,23 +30,22 @@ internal class MockProductRepository : IProductRepository
     public MockProductRepository(ILogger<MockProductRepository> logger, TimeProvider timeProvider)
     {
         _logger = logger;
-        _products = [];
 
         foreach (Product sample in ProductSeedData.CreateProducts(timeProvider.GetUtcNow()))
         {
-            _products.Add(Clone(sample, ++_lastId));
+            _records.Add(Store(sample, ++_lastId));
         }
     }
 
     /// <inheritdoc />
     public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting all products from mock data...");
+        _logger.LogDebug("Getting all products from mock data...");
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            IReadOnlyList<Product> products = Ordered().Select(Copy).ToList();
+            IReadOnlyList<Product> products = Ordered().Select(r => r.ToDomain()).ToList();
             return Task.FromResult(products);
         }
     }
@@ -47,91 +53,95 @@ internal class MockProductRepository : IProductRepository
     /// <inheritdoc />
     public Task<PagedList<Product>> GetPagedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting a page of products from mock data...");
+        _logger.LogDebug("Getting a page of products from mock data...");
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            List<Product> ordered = Ordered();
-            // Same arithmetic as the database query. The request validation keeps the offset inside the int range.
-            List<Product> values = ordered.Skip(pageNumber * pageSize).Take(pageSize).Select(Copy).ToList();
+            List<ProductRecord> ordered = Ordered();
+            // Same arithmetic as the database query. The application service keeps the offset inside the int range.
+            List<Product> values = ordered.Skip(pageNumber * pageSize).Take(pageSize)
+                .Select(r => r.ToDomain())
+                .ToList();
 
             return Task.FromResult(new PagedList<Product>(values, ordered.Count, pageNumber, pageSize));
         }
     }
 
     /// <inheritdoc />
-    public Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken)
+    public Task<VersionedProduct?> FindByIdAsync(int id, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting product with ID {productId} from mock data...", id);
+        _logger.LogDebug("Getting product with ID {productId} from mock data...", id);
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            Product? product = _products.FirstOrDefault(p => p.Id == id);
-            return Task.FromResult(product is null ? null : Copy(product));
+            ProductRecord? record = _records.FirstOrDefault(r => r.Id == id);
+            return Task.FromResult(record?.ToVersioned());
         }
     }
 
     /// <inheritdoc />
-    public Task AddAsync(Product product, CancellationToken cancellationToken)
+    public Task<Product> AddAsync(Product product, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            Product stored = Clone(product, ++_lastId);
-            _products.Add(stored);
-            product.AssignId(stored.Id);
+            ProductRecord record = Store(product, ++_lastId);
+            _records.Add(record);
 
-            _logger.LogInformation("Product {product} created successfully in mock data", product);
-            return Task.CompletedTask;
+            _logger.LogInformation("Product {ProductId} created successfully in mock data", record.Id);
+            return Task.FromResult(record.ToDomain());
         }
     }
 
     /// <inheritdoc />
-    public Task UpdateAsync(Product product, CancellationToken cancellationToken)
+    public Task<Product> UpdateAsync(VersionedProduct product, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
-            int index = _products.FindIndex(p => p.Id == product.Id);
+            int index = _records.FindIndex(r => r.Id == product.Product.Id);
             if (index < 0)
             {
-                _logger.LogWarning("Product with ID {productId} not found. Unable to update the product.", product.Id);
-                return Task.CompletedTask;
+                _logger.LogWarning("Product with ID {productId} not found. Unable to update the product.",
+                    product.Product.Id);
+                throw new ProductConflictException(product.Product.Id);
             }
 
-            _products[index] = Copy(product);
+            if (!_records[index].RowVersion.SequenceEqual(product.Version))
+            {
+                _logger.LogWarning("Product with ID {productId} was changed by another request.",
+                    product.Product.Id);
+                throw new ProductConflictException(product.Product.Id);
+            }
 
-            _logger.LogInformation("Product {product} updated successfully in mock data", product);
-            return Task.CompletedTask;
+            ProductRecord record = Store(product.Product, product.Product.Id);
+            _records[index] = record;
+
+            _logger.LogInformation("Product {ProductId} updated successfully in mock data", record.Id);
+            return Task.FromResult(record.ToDomain());
         }
     }
 
     /// <summary>
-    ///     Returns the stored products in the order of creation. Must be called while holding the lock.
+    ///     Returns the stored records in the order of creation. Must be called while holding the lock.
     /// </summary>
-    private List<Product> Ordered()
+    private List<ProductRecord> Ordered()
     {
-        return _products.OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).ToList();
+        return _records.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id).ToList();
     }
 
     /// <summary>
-    ///     Returns a copy of the product, so callers cannot change stored data without going through the repository.
+    ///     Creates the stored record of a product with the given identifier and a new row version. Must be called while
+    ///     holding the lock.
     /// </summary>
-    private static Product Copy(Product product)
+    private ProductRecord Store(Product product, int id)
     {
-        return Clone(product, product.Id);
-    }
-
-    /// <summary>
-    ///     Creates a copy of the product with the given ID. The ID is assigned by the repository, never by the caller.
-    /// </summary>
-    private static Product Clone(Product product, int id)
-    {
-        return Product.Restore(id, product.Name, product.ImgUri, product.Price, product.Description,
-            product.CreatedAt, product.LastUpdatedAt);
+        ProductRecord record = ProductRecord.FromDomain(product, BitConverter.GetBytes(++_lastRowVersion));
+        record.Id = id;
+        return record;
     }
 }

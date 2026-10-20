@@ -7,7 +7,6 @@
   <ItemGroup Label="Application">
     <PackageVersion Include="FluentResults" Version="4.0.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
-    <PackageVersion Include="Mapster" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.20.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.0" />
@@ -18,6 +17,7 @@
   </ItemGroup>
   <ItemGroup Label="Web API">
     <PackageVersion Include="FastEndpoints.Swagger" Version="8.3.0" />
+    <PackageVersion Include="Mapster" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup Label="Infrastructure">
@@ -41,7 +41,8 @@
     <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
   </ItemGroup>
   <ItemGroup Label="Security">
-    <!-- Transitive dependency pinned to a version without known vulnerabilities. -->
+    <!-- Transitive dependency pinned to a version without known vulnerabilities. Transitive pinning applies this version
+         to every project that gets the package indirectly, so no project needs a PackageReference for it. -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <!-- Transitive dependency of .NET Aspire, pinned to a version without known vulnerabilities. -->
     <PackageVersion Include="MessagePack" Version="2.5.307" />

@@ -3,7 +3,7 @@ using Web.Api.Configuration.Mapping;
 using Web.Api.Models;
 using Web.Api.Tests.TestData;
 using Web.Application.Common;
-using Web.Domain.Entities;
+using Web.Application.Products;
 
 namespace Web.Api.Tests.Mapping;
 
@@ -20,15 +20,23 @@ public class MappingConfigTests
     private TypeAdapterConfig _config = null!;
 
     [Test]
-    public void Product_MapsAllFieldsToProductDto()
+    public void ProductModel_MapsAllFieldsToProductDto()
     {
         // Arrange
         DateTimeOffset updated = new(2026, 2, 3, 4, 5, 6, TimeSpan.Zero);
-        Product product = Product.Restore(7, "Phone", "https://example.com/p.jpg", 10, "desc",
-            TestProducts.Created, updated);
+        ProductModel model = new()
+        {
+            Id = 7,
+            Name = "Phone",
+            ImgUri = "https://example.com/p.jpg",
+            Price = 10,
+            Description = "desc",
+            CreatedAt = TestProducts.Created,
+            LastUpdatedAt = updated
+        };
 
         // Act
-        ProductDto dto = product.Adapt<ProductDto>(_config);
+        ProductDto dto = model.Adapt<ProductDto>(_config);
 
         // Assert
         Assert.That(dto.Id, Is.EqualTo(7));
@@ -44,12 +52,12 @@ public class MappingConfigTests
     public void PagedList_MapsValuesAndPagingInformation()
     {
         // Arrange
-        List<Product> products =
+        List<ProductModel> products =
         [
             TestProducts.Create(1, "A", 20),
             TestProducts.Create(2, "B", 10)
         ];
-        PagedList<Product> source = new(products, 5, 1, 2);
+        PagedList<ProductModel> source = new(products, 5, 1, 2);
 
         // Act
         PagedList<ProductDto> result = source.Adapt<PagedList<ProductDto>>(_config);
@@ -58,6 +66,8 @@ public class MappingConfigTests
         Assert.That(result.TotalCount, Is.EqualTo(5));
         Assert.That(result.PageNumber, Is.EqualTo(1));
         Assert.That(result.PageSize, Is.EqualTo(2));
+        Assert.That(result.TotalPages, Is.EqualTo(3));
+        Assert.That(result.HasNext, Is.True);
         Assert.That(result.Values.Select(v => v.Name), Is.EqualTo(["A", "B"]));
     }
 }

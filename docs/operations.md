@@ -28,6 +28,7 @@ Settings are read from `appsettings.json`, then `appsettings.<Environment>.json`
 | `RateLimiting__Reads__*` / `RateLimiting__Writes__*` | No | see the README | Rate limits per client IP. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Recommended | `http://localhost:4317` | Where traces and metrics are sent. |
 | `Kestrel__Limits__MaxRequestBodySize` | No | `65536` | Largest accepted request body, in bytes. |
+| `AllowedHosts` | Yes, in Production | `*` in `appsettings.json` | Host names the API answers to, separated by semicolons, for example `shop.example.com`. The template value `*` accepts any host, so set the real host names in Production. |
 
 The application refuses to start, and says why, when a required setting is missing or invalid. For example, `Mock` in Production or a missing `WebDb` connection string stops the process at startup.
 

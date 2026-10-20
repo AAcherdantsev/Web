@@ -1,5 +1,5 @@
 using FastEndpoints;
-using Web.Application.Products;
+using Web.Api.Validation;
 
 namespace Web.Api.Features.Products.UpdateProductDescription;
 

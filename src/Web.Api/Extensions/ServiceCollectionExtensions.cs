@@ -16,6 +16,14 @@ public static class ServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
+        /// <summary>
+        /// Configures OpenTelemetry with tracing, metrics, and resource information for the application.
+        /// Adds default instrumentation for ASP.NET Core and SQL Client, runtime metrics,
+        /// and sets up the OTLP exporter for transmitting telemetry data.
+        /// </summary>
+        /// <returns>
+        /// The configured <see cref="IServiceCollection"/>.
+        /// </returns>
         public IServiceCollection AddConfiguredOpenTelemetry()
         {
             services.AddOpenTelemetry()
@@ -50,6 +58,13 @@ public static class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
+        /// <summary>
+        /// Configures CORS for the application by retrieving the allowed origins from the configuration
+        /// and setting up a default policy with specified HTTP methods and headers.
+        /// </summary>
+        /// <returns>
+        /// An array of allowed origins configured for CORS.
+        /// </returns>
         public string[] AddConfiguredCors()
         {
             string[] allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -66,6 +81,11 @@ public static class ServiceCollectionExtensions
 
     extension(WebApplication app)
     {
+        /// <summary>
+        /// Configures health check endpoints for the application.
+        /// Adds a liveness endpoint at "/health/live" to verify the process is responsive
+        /// and a readiness endpoint at "/health/ready" to confirm the application's dependencies are operational.
+        /// </summary>
         public void UseHealthChecksEndpoints()
         {
             // Liveness only confirms that the process responds. Readiness also checks the database.
@@ -73,6 +93,12 @@ public static class ServiceCollectionExtensions
             app.MapHealthChecks("/health/ready");
         }
 
+        /// <summary>
+        /// Configures the application to use FastEndpoints with custom error response handling and versioning.
+        /// Sets up a response builder for validation failures, which returns a <see cref="ProblemDetails"/> object
+        /// containing details about the error, including a trace identifier, error messages, and other metadata.
+        /// Configures endpoint versioning with a prefix and prepends it to the route for versioned APIs.
+        /// </summary>
         public void UseConfiguredFastEndpoints()
         {
             app.UseFastEndpoints(c =>
@@ -104,6 +130,14 @@ public static class ServiceCollectionExtensions
             });
         }
 
+        /// <summary>
+        /// Handles the application migration process by applying pending database migrations
+        /// if the "--migrate-only" argument is specified. If the data source is a database,
+        /// it applies migrations and exits the application. For a mock data source, it simply logs
+        /// that no migrations are required without making changes.
+        /// </summary>
+        /// <param name="args">The command-line arguments passed to the application.</param>
+        /// <returns>An <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task HandleMigrationAsync(string[] args)
         {
             // Applies pending migrations and exits. Used as a separate deployment step.

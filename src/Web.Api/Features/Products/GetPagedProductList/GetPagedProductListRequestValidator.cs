@@ -2,7 +2,7 @@ using FastEndpoints;
 using FluentValidation;
 using Microsoft.Extensions.Options;
 using Web.Api.Configuration;
-using Web.Application.Products;
+using Web.Api.Validation;
 
 namespace Web.Api.Features.Products.GetPagedProductList;
 

@@ -1,6 +1,9 @@
 namespace Web.Application.Products;
 
-public record UpdateProductDescriptionCommand
+/// <summary>
+/// Represents a command to update the description of a product.
+/// </summary>
+public sealed record UpdateProductDescriptionCommand
 {
     /// <summary>
     ///     The unique identifier of the product.

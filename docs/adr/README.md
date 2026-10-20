@@ -17,7 +17,7 @@ Records are numbered and never deleted. When a decision changes, add a new recor
 | [0009](0009-problem-details-for-errors.md) | RFC 7807 problem details for error responses | Accepted |
 | [0010](0010-pagination.md) | Pagination with configurable default and maximum page size | Accepted |
 | [0011](0011-mapster-for-object-mapping.md) | Use Mapster for object mapping | Accepted |
-| [0012](0012-validation-in-two-layers.md) | Validation in two layers | Accepted |
+| [0012](0012-validation-in-two-layers.md) | Validation in two layers | Partially superseded by 0022 |
 | [0013](0013-central-package-management.md) | Central package management | Accepted |
 | [0014](0014-product-model-and-synchronous-updates.md) | Product model as specified and synchronous updates | Accepted |
 | [0015](0015-rate-limiting.md) | Rate limiting with token buckets per client | Accepted |
@@ -26,6 +26,9 @@ Records are numbered and never deleted. When a decision changes, add a new recor
 | [0018](0018-migrations-as-a-separate-step.md) | Migrations as a separate step in Production | Accepted |
 | [0019](0019-input-limits-and-paging-order.md) | Input limits and stable paging order | Accepted |
 | [0020](0020-semantic-versioning-with-gitversion.md) | Semantic versions calculated from git history with GitVersion | Accepted |
+| [0021](0021-optimistic-concurrency-with-row-version.md) | Optimistic concurrency with a row version (409 on conflict) | Accepted |
+| [0022](0022-domain-entity-enforces-invariants.md) | The domain entity enforces its invariants | Accepted |
+| [0024](0024-separate-persistence-model.md) | Separate persistence model in the Infrastructure layer | Accepted |
 
 ## Template
 

@@ -5,13 +5,43 @@ namespace Web.Application.Common.Errors;
 /// <summary>
 ///     Represents an error indicating that a specified resource was not found.
 /// </summary>
-public record NotFoundError : Error
+public sealed record NotFoundError : Error
 {
     /// <summary>
     ///     Creates a new instance of the <see cref="NotFoundError" /> class.
     /// </summary>
     /// <param name="message">The message.</param>
     public NotFoundError(string message)
+    {
+        Message = message;
+    }
+}
+
+/// <summary>
+///     Represents an error indicating that the request breaks a rule of the input.
+/// </summary>
+public sealed record ValidationError : Error
+{
+    /// <summary>
+    ///     Creates a new instance of the <see cref="ValidationError" /> class.
+    /// </summary>
+    /// <param name="message">The message that describes the broken rule.</param>
+    public ValidationError(string message)
+    {
+        Message = message;
+    }
+}
+
+/// <summary>
+///     Represents an error indicating that the change conflicts with another change saved at the same time.
+/// </summary>
+public sealed record ConflictError : Error
+{
+    /// <summary>
+    ///     Creates a new instance of the <see cref="ConflictError" /> class.
+    /// </summary>
+    /// <param name="message">The message.</param>
+    public ConflictError(string message)
     {
         Message = message;
     }

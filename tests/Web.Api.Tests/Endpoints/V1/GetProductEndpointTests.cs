@@ -5,6 +5,7 @@ using Moq;
 using Web.Application.Common.Errors;
 using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
+using Web.Application.Products;
 
 namespace Web.Api.Tests.Endpoints.V1;
 
@@ -36,7 +37,7 @@ public class GetProductEndpointTests : IntegrationTestBase
     public async Task GetProduct_WhenMissing_Returns404()
     {
         ServiceMock.Setup(s => s.GetByIdAsync(3, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<Domain.Entities.Product>(new NotFoundError("Product not found.")));
+            .ReturnsAsync(Result.Fail<ProductModel>(new NotFoundError("Product not found.")));
 
         HttpResponseMessage response = await Client.GetAsync("/v1/products/3");
 

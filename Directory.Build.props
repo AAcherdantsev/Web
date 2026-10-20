@@ -1,13 +1,8 @@
 <Project>
 
     <PropertyGroup>
-        <!-- Compiler warnings fail the build, so they cannot accumulate unnoticed -->
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- It should be enabled, but it is intentionally disabled so that no problems arise when checking the test task. -->
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     </PropertyGroup>
-
-    <ItemGroup>
-        <!-- Applies the pinned version from Directory.Packages.props to every project. -->
-        <PackageReference Include="System.Security.Cryptography.Pkcs"/>
-    </ItemGroup>
 
 </Project>

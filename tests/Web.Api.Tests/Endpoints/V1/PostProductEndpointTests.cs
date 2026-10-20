@@ -5,7 +5,6 @@ using Moq;
 using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Tests.Endpoints.V1;
 
@@ -52,7 +51,7 @@ public class PostProductEndpointTests : IntegrationTestBase
     public async Task PostProduct_WhenServiceRejectsTheProduct_Returns400ProblemDetails()
     {
         ServiceMock.Setup(s => s.CreateAsync(It.IsAny<CreateProductCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<Product>("Price must be greater than 0."));
+            .ReturnsAsync(Result.Fail<ProductModel>("Price must be greater than 0."));
 
         HttpResponseMessage response = await SendJsonAsync(HttpMethod.Post, "/v1/products",
             "{\"name\":\"Phone\",\"imgUri\":\"https://example.com/p.jpg\",\"price\":10}");

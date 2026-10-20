@@ -7,7 +7,6 @@ using Web.Api.Errors;
 using Web.Api.Tests.TestData;
 using Web.Application.Common.Errors;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Tests.IntegrationTests;
 
@@ -66,7 +65,7 @@ public class ErrorHandlingTests : IntegrationTestBase
     {
         // Arrange
         ServiceMock.Setup(s => s.GetByIdAsync(999, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
+            .ReturnsAsync(Result.Fail<ProductModel>(new NotFoundError("Product not found.")));
 
         // Act
         HttpResponseMessage response = await Client.GetAsync("/v1/products/999");
@@ -118,7 +117,7 @@ public class ErrorHandlingTests : IntegrationTestBase
         // Arrange
         ServiceMock.Setup(s =>
                 s.UpdateDescriptionAsync(new() { Id = 999, Description = "x" }, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
+            .ReturnsAsync(Result.Fail<ProductModel>(new NotFoundError("Product not found.")));
 
         // Act
         HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/999",

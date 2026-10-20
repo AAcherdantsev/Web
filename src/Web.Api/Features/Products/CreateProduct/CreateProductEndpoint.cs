@@ -4,10 +4,9 @@ using Mapster;
 using Web.Api.Configuration.RateLimiting;
 using Web.Api.Errors;
 using Web.Api.Extensions;
-using Web.Api.Features.Products.GetProduct;
 using Web.Api.Models;
+using Web.Api.Features.Products.GetProduct;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Features.Products.CreateProduct;
 
@@ -72,11 +71,11 @@ public sealed class CreateProductEndpoint : Endpoint<CreateProductRequest, Produ
             Description = req.Description
         };
 
-        Result<Product> result = await _productService.CreateAsync(command, ct);
+        Result<ProductModel> result = await _productService.CreateAsync(command, ct);
 
         if (result.IsFailed)
         {
-            await Send.ResultAsync(ProblemResults.BadRequest(result.Errors));
+            await Send.ResultAsync(ProblemResults.ForErrors(result.Errors));
             return;
         }
 

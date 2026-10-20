@@ -6,7 +6,7 @@ namespace Web.Infrastructure.Services;
 /// <summary>
 ///     Reports whether the database accepts connections. Used by the readiness probe.
 /// </summary>
-internal class DatabaseHealthCheck : IHealthCheck
+internal sealed class DatabaseHealthCheck : IHealthCheck
 {
     private readonly DatabaseContext _context;
 

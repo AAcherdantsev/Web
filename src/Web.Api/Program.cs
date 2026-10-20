@@ -23,6 +23,7 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     {
         StatusCodes.Status400BadRequest => ProblemResults.BAD_REQUEST_TYPE,
         StatusCodes.Status404NotFound => ProblemResults.NOT_FOUND_TYPE,
+        StatusCodes.Status409Conflict => ProblemResults.CONFLICT_TYPE,
         _ => context.ProblemDetails.Type
     };
 });

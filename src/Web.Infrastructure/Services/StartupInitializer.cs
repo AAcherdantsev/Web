@@ -8,7 +8,7 @@ namespace Web.Infrastructure.Services;
 ///     Hosted service that applies database migrations and seeds example products during application startup,
 ///     as configured by <see cref="DatabaseOptions" />.
 /// </summary>
-public class StartupInitializer : IHostedService
+public sealed class StartupInitializer : IHostedService
 {
     private readonly IOptions<DatabaseOptions> _options;
     private readonly IServiceProvider _serviceProvider;
