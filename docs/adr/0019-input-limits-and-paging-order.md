@@ -15,7 +15,7 @@ Three requirements shape the product data and the product list:
 
 * **Limits** are defined once, in `ProductLimits` in the Domain project: name 200 characters, image URI 2048, description 4000. They are used by:
   * the request validators, which return a 400 with a field-level message;
-  * the business rules in `ProductFactory`, which protect callers that do not use HTTP;
+  * the business rules of the `Product` entity, which protect callers that do not use HTTP;
   * the database schema, through `HasMaxLength` in the `InitialCreate` migration, as a last line of defence.
 * **Prices** are greater than 0, have at most two decimal places, and are at most `9999999999999999.99`. This is the range of the `decimal(18,2)` column, so a price is never rounded or truncated when it is stored.
 * **Request body** size is limited to 64 KB (`Kestrel:Limits:MaxRequestBodySize`).

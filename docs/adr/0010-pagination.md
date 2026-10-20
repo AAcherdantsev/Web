@@ -14,7 +14,7 @@ Version 2 of the product list must paginate, with a default page size of 10. An 
 - The offset of a page (`pageNumber × pageSize`) must fit in an `int`, because the database query uses an `int` offset. A larger combination is rejected with 400 instead of returning a wrong page.
 - `PaginationOptions` is bound from the `Pagination` configuration section. Validation runs at startup (`ValidateDataAnnotations` and `ValidateOnStart`), so a bad value stops the application before it serves requests. `DefaultPageSize` must not exceed `MaxPageSize`.
 - To get all products, clients use `GET /v1/products`, which is a collection without pagination.
-- The response is a `PagedList` with `pageNumber`, `pageSize`, `totalCount`, and `values`.
+- The response is a `PagedList` with `pageNumber`, `pageSize`, `totalCount`, `totalPages`, `hasNext`, and `values`. The last two are computed from the others, so clients do not have to.
 
 ## Consequences
 
