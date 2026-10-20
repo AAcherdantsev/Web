@@ -1,33 +1,39 @@
 using FluentValidation;
-using Web.Domain.Entities;
-using static Web.Application.Products.ValidationErrorCodes;
+using Web.Application.Common;
+using Web.Application.Products;
+using static Web.Api.Validation.ValidationErrorCodes;
 
-namespace Web.Application.Products;
+namespace Web.Api.Validation;
 
+/// <summary>
+///     The request validation rules. Each rule calls a rule of the domain through <see cref="ProductValidation" /> or
+///     <see cref="PageRules" />, so a rule is never written twice. The rules only add the field-level error and its code.
+/// </summary>
 public static class ProductValidationRules
 {
     extension<T>(IRuleBuilder<T, string?> ruleBuilder)
     {
         public IRuleBuilderOptions<T, string?> ProductNameRules()
         {
-            return ruleBuilder.NotEmpty().WithErrorCode(nameof(ERROR_0001)).WithMessage(ERROR_0001)
-                .MaximumLength(ProductLimits.MAX_NAME_LENGTH).WithErrorCode(nameof(ERROR_0002))
+            return ruleBuilder.Must(ProductValidation.IsNameProvided).WithErrorCode(nameof(ERROR_0001))
+                .WithMessage(ERROR_0001)
+                .Must(ProductValidation.IsNameWithinLimit).WithErrorCode(nameof(ERROR_0002))
                 .WithMessage(ERROR_0002);
         }
 
         public IRuleBuilderOptions<T, string?> ProductImageUrlRules()
         {
-            return ruleBuilder.Must(ProductImageUri.IsValid)
+            return ruleBuilder.Must(ProductValidation.IsImgUriValid)
                 .WithErrorCode(nameof(ERROR_0004))
                 .WithMessage(ERROR_0004)
-                .MaximumLength(ProductLimits.MAX_IMG_URI_LENGTH)
+                .Must(ProductValidation.IsImgUriWithinLimit)
                 .WithErrorCode(nameof(ERROR_0005))
                 .WithMessage(ERROR_0005);
         }
 
         public IRuleBuilderOptions<T, string?> ProductDescriptionRules()
         {
-            return ruleBuilder.MaximumLength(ProductLimits.MAX_DESCRIPTION_LENGTH)
+            return ruleBuilder.Must(ProductValidation.IsDescriptionWithinLimit)
                 .WithErrorCode(nameof(ERROR_0006))
                 .WithMessage(ERROR_0006);
         }
@@ -46,25 +52,24 @@ public static class ProductValidationRules
             Func<T, int?> pageSizeSelector)
         {
             return ruleBuilder
-                .GreaterThanOrEqualTo(0)
+                .Must(pageNumber => PageRules.IsPageNumberNonNegative(pageNumber ?? 0))
                 .WithErrorCode(nameof(ERROR_0008))
                 .WithMessage(ERROR_0008)
                 .Must((request, pageNumber) =>
-                    (long) (pageNumber ?? 0) *
-                    (pageSizeSelector(request) ?? defaultPageSize)
-                    <= int.MaxValue)
+                    PageRules.IsOffsetWithinInt(pageNumber ?? 0, pageSizeSelector(request) ?? defaultPageSize))
                 .WithErrorCode(nameof(ERROR_0010))
                 .WithMessage(ERROR_0010);
         }
-    }
 
-    extension<T>(IRuleBuilder<T, int?> ruleBuilder)
-    {
         public IRuleBuilderOptions<T, int?> PageSizeRules(int maxPageSize)
         {
-            return ruleBuilder.InclusiveBetween(1, maxPageSize)
+            return ruleBuilder
+                .Must(pageSize => PageRules.IsPageSizeAtLeastOne(pageSize ?? 1))
                 .WithErrorCode(nameof(ERROR_0009))
-                .WithMessage(ERROR_0009(maxPageSize));
+                .WithMessage(ERROR_0009)
+                .Must(pageSize => PageRules.IsPageSizeAtMost(pageSize ?? 1, maxPageSize))
+                .WithErrorCode(nameof(ERROR_0013))
+                .WithMessage(ERROR_0013(maxPageSize));
         }
     }
 
@@ -72,13 +77,13 @@ public static class ProductValidationRules
     {
         public IRuleBuilderOptions<T, decimal> ProductPriceRules()
         {
-            return ruleBuilder.GreaterThan(0)
+            return ruleBuilder.Must(ProductValidation.IsPricePositive)
                 .WithErrorCode(nameof(ERROR_0003))
                 .WithMessage(ERROR_0003)
-                .LessThanOrEqualTo(ProductPrice.MAX)
+                .Must(ProductValidation.IsPriceWithinLimit)
                 .WithErrorCode(nameof(ERROR_0011))
                 .WithMessage(ERROR_0011)
-                .Must(ProductPrice.HasAtMostTwoDecimalPlaces)
+                .Must(ProductValidation.HasAtMostTwoDecimalPlaces)
                 .WithErrorCode(nameof(ERROR_0012))
                 .WithMessage(ERROR_0012);
         }

@@ -1,7 +1,10 @@
+using Web.Domain.Exceptions;
+
 namespace Web.Domain.Entities;
 
 /// <summary>
-///     Domain entity representing a product. Its values change only through the methods of this class.
+///     Domain entity representing a product. Its values change only through the methods of this class, and every
+///     value is checked against <see cref="ProductRules" /> when it is set.
 /// </summary>
 public class Product : BaseEntity
 {
@@ -20,8 +23,15 @@ public class Product : BaseEntity
     /// <param name="price">Price of the product.</param>
     /// <param name="description">Description of the product.</param>
     /// <param name="createdAt">Date and time when the product was created.</param>
+    /// <exception cref="InvalidProductException">Thrown when a value breaks a business rule.</exception>
     public Product(string name, string imgUri, decimal price, string description, DateTimeOffset createdAt)
     {
+        IReadOnlyList<string> violations = ProductRules.Violations(name, imgUri, price, description);
+        if (violations.Count > 0)
+        {
+            throw new InvalidProductException(violations);
+        }
+
         Name = name;
         ImgUri = imgUri;
         Price = price;
@@ -31,15 +41,20 @@ public class Product : BaseEntity
     }
 
     /// <summary>
-    ///     Recreates a product with its stored values, for example when a copy is made by a store.
+    ///     Rebuilds a product from the values held by a store. Only the persistence adapters call this, because the
+    ///     identifier and the row version are assigned by the store. The values are checked against the same rules as
+    ///     a new product. The application layer never calls this method.
     /// </summary>
+    /// <exception cref="InvalidProductException">Thrown when a stored value breaks a business rule.</exception>
     public static Product Restore(int id, string name, string imgUri, decimal price, string description,
-        DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt)
+        DateTimeOffset createdAt, DateTimeOffset lastUpdatedAt, byte[] rowVersion)
     {
-        Product product = new(name, imgUri, price, description, createdAt);
-        product.ChangeDescription(description, lastUpdatedAt);
-        product.AssignId(id);
-        return product;
+        return new(name, imgUri, price, description, createdAt)
+        {
+            Id = id,
+            LastUpdatedAt = lastUpdatedAt,
+            RowVersion = rowVersion
+        };
     }
 
     /// <summary>
@@ -73,23 +88,27 @@ public class Product : BaseEntity
     public DateTimeOffset LastUpdatedAt { get; private set; }
 
     /// <summary>
+    ///     Version of the stored product. The store changes it on every update, and it rejects an update whose version
+    ///     is no longer the stored one, because another change was saved in between.
+    /// </summary>
+    public byte[] RowVersion { get; private set; } = [];
+
+    /// <summary>
     ///     Replaces the description of the product and records the time of the change.
     /// </summary>
     /// <param name="description">The new description. Empty when the product has no description.</param>
     /// <param name="updatedAt">The time of the change.</param>
+    /// <exception cref="InvalidProductException">Thrown when the description breaks a business rule.</exception>
     public void ChangeDescription(string description, DateTimeOffset updatedAt)
     {
+        IReadOnlyList<string> violations = ProductRules.DescriptionViolations(description);
+        if (violations.Count > 0)
+        {
+            throw new InvalidProductException(violations);
+        }
+
         Description = description;
         LastUpdatedAt = updatedAt;
-    }
-
-    /// <summary>
-    ///     Sets the identifier. Called by the store when the product is added.
-    /// </summary>
-    /// <param name="id">The identifier assigned by the store.</param>
-    public void AssignId(int id)
-    {
-        Id = id;
     }
 
     /// <inheritdoc />

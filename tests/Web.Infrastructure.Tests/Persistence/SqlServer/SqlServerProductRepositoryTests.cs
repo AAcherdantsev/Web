@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Testcontainers.MsSql;
 using Web.Application.Common;
+using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
 using Web.Infrastructure.Persistence;
+using Web.Infrastructure.Mock;
 using Web.Infrastructure.Persistence.Repositories;
+using Web.Infrastructure.Services;
 
 namespace Web.Infrastructure.Tests.Persistence.SqlServer;
 
@@ -20,6 +24,7 @@ public class SqlServerProductRepositoryTests
     private static readonly DateTimeOffset Created = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private MsSqlContainer _container = null!;
+    private DbContextOptions<DatabaseContext> _options = null!;
     private DatabaseContext _context = null!;
     private ProductRepository _repository = null!;
 
@@ -29,11 +34,11 @@ public class SqlServerProductRepositoryTests
         _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
         await _container.StartAsync();
 
-        DbContextOptions<DatabaseContext> options = new DbContextOptionsBuilder<DatabaseContext>()
+        _options = new DbContextOptionsBuilder<DatabaseContext>()
             .UseSqlServer(_container.GetConnectionString())
             .Options;
 
-        _context = new(options);
+        _context = new(_options);
         await _context.Database.MigrateAsync();
     }
 
@@ -152,6 +157,59 @@ public class SqlServerProductRepositoryTests
                 "INSERT INTO Products (Name, ImgUri, Price, Description, CreatedAt, LastUpdatedAt) VALUES ({0}, 'https://example.com/x.jpg', 1, '', SYSUTCDATETIME(), SYSUTCDATETIME())",
                 tooLong),
             Throws.Exception);
+    }
+
+    [Test]
+    public async Task UpdateAsync_WhenAnotherChangeWasSavedFirst_ThrowsConflictAndKeepsTheFirstChange()
+    {
+        // Arrange: two requests read the same product, each with its own context
+        Product product = new("Shared", "https://example.com/s.jpg", 1, "", Created);
+        await _repository.AddAsync(product, CancellationToken.None);
+        _context.ChangeTracker.Clear();
+
+        await using DatabaseContext firstContext = new(_options);
+        await using DatabaseContext secondContext = new(_options);
+        ProductRepository first = new(firstContext, new Mock<ILogger<ProductRepository>>().Object);
+        ProductRepository second = new(secondContext, new Mock<ILogger<ProductRepository>>().Object);
+
+        Product firstCopy = (await first.FindByIdAsync(product.Id, CancellationToken.None))!;
+        Product secondCopy = (await second.FindByIdAsync(product.Id, CancellationToken.None))!;
+        byte[] readVersion = firstCopy.RowVersion;
+
+        // Act: the first save succeeds and changes the row version, the second one must not overwrite it
+        firstCopy.ChangeDescription("First", Created.AddDays(1));
+        Product saved = await first.UpdateAsync(firstCopy, CancellationToken.None);
+        secondCopy.ChangeDescription("Second", Created.AddDays(2));
+
+        // Assert
+        Assert.That(saved.RowVersion, Is.Not.EqualTo(readVersion));
+        Assert.That(async () => await second.UpdateAsync(secondCopy, CancellationToken.None),
+            Throws.TypeOf<ProductConflictException>());
+
+        _context.ChangeTracker.Clear();
+        Product stored = await _context.Products.AsNoTracking().SingleAsync(p => p.Id == product.Id);
+        Assert.That(stored.Description, Is.EqualTo("First"));
+    }
+
+    [Test]
+    public async Task InitializeAsync_WhenTwoInstancesStartTogether_SeedsTheSampleProductsOnce()
+    {
+        // Arrange: an empty table, and two service providers that stand for two instances of the API
+        await _context.Database.ExecuteSqlRawAsync("DELETE FROM Products");
+        ServiceCollection services = new();
+        services.AddDbContext<DatabaseContext>(options => options.UseSqlServer(_container.GetConnectionString()));
+        services.AddSingleton(TimeProvider.System);
+        await using ServiceProvider first = services.BuildServiceProvider();
+        await using ServiceProvider second = services.BuildServiceProvider();
+
+        // Act
+        await Task.WhenAll(
+            DatabaseInitializer.InitializeAsync(first),
+            DatabaseInitializer.InitializeAsync(second));
+
+        // Assert
+        int count = await _context.Products.AsNoTracking().CountAsync();
+        Assert.That(count, Is.EqualTo(ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count));
     }
 
     [Test]

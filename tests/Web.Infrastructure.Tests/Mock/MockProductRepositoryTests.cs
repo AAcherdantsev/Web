@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Web.Application.Common;
+using Web.Application.Common.Repositories;
 using Web.Domain.Entities;
 using Web.Infrastructure.Mock;
 
@@ -57,26 +58,58 @@ public class MockProductRepositoryTests
     }
 
     [Test]
-    public async Task AddAsync_AssignsNextIdAndStoresProduct()
+    public async Task AddAsync_ReturnsTheStoredProductWithNextIdAndRowVersion()
     {
         Product product = new("New", "https://example.com/n.jpg", 1, "", DateTimeOffset.UtcNow);
         int seedCount = ProductSeedData.CreateProducts(DateTimeOffset.UtcNow).Count;
 
-        await _repository.AddAsync(product, CancellationToken.None);
+        Product stored = await _repository.AddAsync(product, CancellationToken.None);
 
-        Assert.That(product.Id, Is.EqualTo(seedCount + 1));
-        Assert.That((await _repository.FindByIdAsync(product.Id, CancellationToken.None))?.Name, Is.EqualTo("New"));
+        Assert.That(stored.Id, Is.EqualTo(seedCount + 1));
+        Assert.That(stored.RowVersion, Is.Not.Empty);
+        Assert.That((await _repository.FindByIdAsync(stored.Id, CancellationToken.None))?.Name, Is.EqualTo("New"));
     }
 
     [Test]
-    public async Task UpdateAsync_StoresTheChangedDescription()
+    public async Task UpdateAsync_StoresTheChangedDescriptionAndNewRowVersion()
     {
         Product product = (await _repository.FindByIdAsync(2, CancellationToken.None))!;
+        byte[] previousVersion = product.RowVersion;
         product.ChangeDescription("Changed", DateTimeOffset.UtcNow);
 
-        await _repository.UpdateAsync(product, CancellationToken.None);
+        Product updated = await _repository.UpdateAsync(product, CancellationToken.None);
 
+        Assert.That(updated.Description, Is.EqualTo("Changed"));
+        Assert.That(updated.RowVersion, Is.Not.EqualTo(previousVersion));
         Assert.That((await _repository.FindByIdAsync(2, CancellationToken.None))?.Description, Is.EqualTo("Changed"));
+    }
+
+    [Test]
+    public async Task UpdateAsync_WithStaleCopy_ThrowsConflictAndKeepsTheSavedChange()
+    {
+        // Arrange: two readers load the same product, and the first one saves its change
+        Product first = (await _repository.FindByIdAsync(2, CancellationToken.None))!;
+        Product second = (await _repository.FindByIdAsync(2, CancellationToken.None))!;
+        first.ChangeDescription("First", DateTimeOffset.UtcNow);
+        await _repository.UpdateAsync(first, CancellationToken.None);
+
+        // Act
+        second.ChangeDescription("Second", DateTimeOffset.UtcNow);
+
+        // Assert
+        Assert.That(async () => await _repository.UpdateAsync(second, CancellationToken.None),
+            Throws.TypeOf<ProductConflictException>());
+        Assert.That((await _repository.FindByIdAsync(2, CancellationToken.None))?.Description, Is.EqualTo("First"));
+    }
+
+    [Test]
+    public void UpdateAsync_WhenTheProductIsMissing_ThrowsConflict()
+    {
+        // A new product has ID 0, and the store never assigns that ID
+        Product product = new("Gone", "https://example.com/g.jpg", 1, "", DateTimeOffset.UtcNow);
+
+        Assert.That(async () => await _repository.UpdateAsync(product, CancellationToken.None),
+            Throws.TypeOf<ProductConflictException>());
     }
 
     [Test]

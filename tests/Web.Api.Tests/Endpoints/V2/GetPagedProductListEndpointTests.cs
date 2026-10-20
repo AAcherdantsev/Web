@@ -1,11 +1,12 @@
 using System.Net;
 using System.Text.Json;
+using FluentResults;
 using Moq;
 using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
 using Web.Application.Common;
+using Web.Application.Common.Errors;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Tests.Endpoints.V2;
 
@@ -17,8 +18,8 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
     {
         // Arrange
         ServiceMock.Setup(s => s.GetPagedAsync(It.IsAny<GetPagedProductsQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PagedList<Product>(
-                [TestProducts.Create(3, "C"), TestProducts.Create(4, "D")], 7, 1, 2));
+            .ReturnsAsync(Result.Ok(new PagedList<ProductModel>(
+                [TestProducts.Create(3, "C"), TestProducts.Create(4, "D")], 7, 1, 2)));
 
         // Act
         HttpResponseMessage response = await Client.GetAsync("/v2/products?pageNumber=1&pageSize=2");
@@ -30,6 +31,8 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
         Assert.That(root.GetProperty("pageNumber").GetInt32(), Is.EqualTo(1));
         Assert.That(root.GetProperty("pageSize").GetInt32(), Is.EqualTo(2));
         Assert.That(root.GetProperty("totalCount").GetInt64(), Is.EqualTo(7));
+        Assert.That(root.GetProperty("totalPages").GetInt64(), Is.EqualTo(4));
+        Assert.That(root.GetProperty("hasNext").GetBoolean(), Is.True);
         Assert.That(root.GetProperty("values").GetArrayLength(), Is.EqualTo(2));
         Assert.That(root.GetProperty("values")[0].GetProperty("name").GetString(), Is.EqualTo("C"));
     }
@@ -38,7 +41,7 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
     public async Task GetPagedProducts_WithoutPageNumber_RequestsTheFirstPage()
     {
         ServiceMock.Setup(s => s.GetPagedAsync(It.IsAny<GetPagedProductsQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PagedList<Product>([], 0, 0, 10));
+            .ReturnsAsync(Result.Ok(new PagedList<ProductModel>([], 0, 0, 10)));
 
         HttpResponseMessage response = await Client.GetAsync("/v2/products");
 
@@ -47,5 +50,17 @@ public class GetPagedProductListEndpointTests : IntegrationTestBase
                 It.Is<GetPagedProductsQuery>(q => q.PageNumber == 0 && q.PageSize == 10),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Test]
+    public async Task GetPagedProducts_WhenTheServiceRejectsThePage_Returns400()
+    {
+        ServiceMock.Setup(s => s.GetPagedAsync(It.IsAny<GetPagedProductsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<PagedList<ProductModel>>(
+                new ValidationError("The requested page is beyond the supported range.")));
+
+        HttpResponseMessage response = await Client.GetAsync("/v2/products?pageNumber=1&pageSize=2");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 }

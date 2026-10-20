@@ -14,6 +14,7 @@
 
     <ItemGroup>
         <PackageReference Include="FastEndpoints.Swagger"/>
+        <PackageReference Include="FluentValidation"/>
         <PackageReference Include="Mapster"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -28,7 +29,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Web.Application\Web.Application.csproj"/>
-        <ProjectReference Include="..\Web.Domain\Web.Domain.csproj"/>
         <ProjectReference Include="..\Web.Infrastructure\Web.Infrastructure.csproj"/>
     </ItemGroup>
 

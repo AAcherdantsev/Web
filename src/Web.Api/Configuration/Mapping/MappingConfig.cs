@@ -1,15 +1,15 @@
 using Mapster;
 using Web.Api.Models;
 using Web.Application.Common;
-using Web.Domain.Entities;
+using Web.Application.Products;
 
 namespace Web.Api.Configuration.Mapping;
 
 /// <summary>
-///     Defines the Mapster mappings from domain entities to API response models.
+///     Defines the Mapster mappings from application models to API response models.
 /// </summary>
 /// <remarks>
-///     <see cref="Product" /> to <see cref="ProductDto" /> is mapped by matching property names,
+///     <see cref="ProductModel" /> to <see cref="ProductDto" /> is mapped by matching property names,
 ///     so only the paged list needs an explicit mapping.
 /// </remarks>
 public sealed class MappingConfig : IRegister
@@ -17,7 +17,7 @@ public sealed class MappingConfig : IRegister
     /// <inheritdoc />
     public void Register(TypeAdapterConfig config)
     {
-        config.NewConfig<PagedList<Product>, PagedList<ProductDto>>()
+        config.NewConfig<PagedList<ProductModel>, PagedList<ProductDto>>()
             .MapWith(src => new(
                 src.Values.Adapt<List<ProductDto>>(),
                 src.TotalCount,

@@ -5,8 +5,6 @@ using Web.Api.Configuration.RateLimiting;
 using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Models;
-using Web.Application.Common.Errors;
-using Web.Domain.Entities;
 using Web.Application.Products;
 
 namespace Web.Api.Features.Products.UpdateProductDescription;
@@ -45,6 +43,8 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
             s.Response<ProductDto>(StatusCodes.Status200OK, "Product updated successfully");
             s.Response(StatusCodes.Status400BadRequest, "Invalid request data");
             s.Response(StatusCodes.Status404NotFound, "Product not found");
+            s.Response(StatusCodes.Status409Conflict,
+                "Another request changed the product at the same time. Read the product and try again.");
             s.AddErrorResponses();
         });
 
@@ -64,7 +64,7 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
 
         UpdateProductDescriptionCommand command = new() { Id = productId, Description = req.Description };
 
-        Result<Product> result = await _productService.UpdateDescriptionAsync(command, ct);
+        Result<ProductModel> result = await _productService.UpdateDescriptionAsync(command, ct);
 
         if (result.IsSuccess)
         {
@@ -72,12 +72,6 @@ public sealed class UpdateProductDescriptionEndpoint : Endpoint<UpdateProductDes
             return;
         }
 
-        if (result.HasError<NotFoundError>())
-        {
-            await Send.ResultAsync(ProblemResults.NotFound(result.Errors[0].Message));
-            return;
-        }
-
-        await Send.ResultAsync(ProblemResults.BadRequest(result.Errors));
+        await Send.ResultAsync(ProblemResults.ForErrors(result.Errors));
     }
 }

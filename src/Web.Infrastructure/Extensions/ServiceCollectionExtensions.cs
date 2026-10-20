@@ -67,7 +67,6 @@ public static class ServiceCollectionExtensions
                         5,
                         TimeSpan.FromSeconds(30),
                         null);
-                    o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                 });
         });
 

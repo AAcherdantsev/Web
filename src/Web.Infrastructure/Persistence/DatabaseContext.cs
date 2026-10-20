@@ -41,6 +41,8 @@ internal class DatabaseContext : DbContext
             entity.Property(p => p.ImgUri).HasMaxLength(ProductLimits.MAX_IMG_URI_LENGTH);
             entity.Property(p => p.Description).HasMaxLength(ProductLimits.MAX_DESCRIPTION_LENGTH);
             entity.Property(p => p.Price).HasPrecision(18, 2);
+            // Changed by the database on every update. The UPDATE statement checks it, so a stale copy cannot overwrite a newer change
+            entity.Property(p => p.RowVersion).IsRowVersion();
             // The product list is ordered by creation time and then by ID, so the list is paged with an index on both
             entity.HasIndex(p => new { p.CreatedAt, p.Id });
         });

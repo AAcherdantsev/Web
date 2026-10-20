@@ -40,7 +40,7 @@ jobs:
       - name: Check formatting
         run: dotnet format whitespace Web.slnx --verify-no-changes --no-restore
 
-      - name: Build with warnings as errors
+      - name: Build in Release configuration
         run: dotnet build Web.slnx --no-restore --configuration Release
 
       - name: Check for vulnerable packages

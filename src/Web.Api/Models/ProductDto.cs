@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace Web.Api.Models;
 
 /// <summary>
@@ -28,17 +26,17 @@ public sealed class ProductDto
     public required decimal Price { get; init; }
 
     /// <summary>
-    ///     The description of the product.
+    ///     The description of the product. Empty when the product has no description.
     /// </summary>
-    public string Description { get; init; } = string.Empty;
+    public required string Description { get; init; }
 
     /// <summary>
     ///     The date and time when the product was created.
     /// </summary>
-    public DateTimeOffset CreatedAt { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
 
     /// <summary>
     ///     The date and time when the product was last updated.
     /// </summary>
-    public DateTimeOffset LastUpdatedAt { get; init; }
+    public required DateTimeOffset LastUpdatedAt { get; init; }
 }

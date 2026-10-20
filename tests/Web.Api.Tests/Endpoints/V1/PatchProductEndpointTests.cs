@@ -6,7 +6,6 @@ using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
 using Web.Application.Common.Errors;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Tests.Endpoints.V1;
 
@@ -47,11 +46,30 @@ public class PatchProductEndpointTests : IntegrationTestBase
     {
         ServiceMock.Setup(s =>
                 s.UpdateDescriptionAsync(new() { Id = 4, Description = "x" }, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Fail<Product>(new NotFoundError("Product not found.")));
+            .ReturnsAsync(Result.Fail<ProductModel>(new NotFoundError("Product not found.")));
 
         HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",
             "{\"description\":\"x\"}");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task PatchProduct_WhenAnotherChangeWasSavedFirst_Returns409WithProblemDetails()
+    {
+        ServiceMock.Setup(s =>
+                s.UpdateDescriptionAsync(new() { Id = 4, Description = "x" }, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Fail<ProductModel>(
+                new ConflictError("The product was changed by another request. Try again.")));
+
+        HttpResponseMessage response = await SendJsonAsync(HttpMethod.Patch, "/v1/products/4",
+            "{\"description\":\"x\"}");
+        using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+        Assert.That(document.RootElement.GetProperty("type").GetString(),
+            Is.EqualTo("https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10"));
+        Assert.That(document.RootElement.GetProperty("detail").GetString(),
+            Is.EqualTo("The product was changed by another request. Try again."));
     }
 }

@@ -1,4 +1,4 @@
-using Web.Domain.Entities;
+using Web.Application.Products;
 
 namespace Web.Api.Tests.TestData;
 
@@ -13,11 +13,20 @@ internal static class TestProducts
     public static readonly DateTimeOffset Created = new(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
 
     /// <summary>
-    ///     Creates a stored product with the given values.
+    ///     Creates a product model with the given values.
     /// </summary>
-    public static Product Create(int id = 1, string name = "Test Product", decimal price = 10,
+    public static ProductModel Create(int id = 1, string name = "Test Product", decimal price = 10,
         string description = "desc")
     {
-        return Product.Restore(id, name, "https://example.com/p.jpg", price, description, Created, Created);
+        return new()
+        {
+            Id = id,
+            Name = name,
+            ImgUri = "https://example.com/p.jpg",
+            Price = price,
+            Description = description,
+            CreatedAt = Created,
+            LastUpdatedAt = Created
+        };
     }
 }

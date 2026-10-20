@@ -3,7 +3,7 @@ using Web.Domain.Entities;
 namespace Web.Application.Common.Repositories;
 
 /// <summary>
-///     Stores and loads products. It does not check business rules: the application services do that.
+///     Stores and loads products. It does not check business rules: the entity and the application services do that.
 /// </summary>
 public interface IProductRepository
 {
@@ -26,12 +26,15 @@ public interface IProductRepository
     Task<Product?> FindByIdAsync(int id, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Stores a new product and assigns its identifier.
+    ///     Stores a new product and returns the stored product with its identifier and row version.
     /// </summary>
-    Task AddAsync(Product product, CancellationToken cancellationToken);
+    Task<Product> AddAsync(Product product, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Stores the changes of an existing product.
+    ///     Stores the changes of an existing product and returns the stored product with its new row version.
     /// </summary>
-    Task UpdateAsync(Product product, CancellationToken cancellationToken);
+    /// <exception cref="ProductConflictException">
+    ///     Thrown when the product changed after it was read, or when it no longer exists.
+    /// </exception>
+    Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken);
 }

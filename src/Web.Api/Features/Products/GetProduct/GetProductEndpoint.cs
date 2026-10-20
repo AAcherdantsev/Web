@@ -5,8 +5,6 @@ using Web.Api.Configuration.RateLimiting;
 using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Models;
-using Web.Application.Common.Errors;
-using Web.Domain.Entities;
 using Web.Application.Products;
 
 namespace Web.Api.Features.Products.GetProduct;
@@ -53,7 +51,7 @@ public sealed class GetProductEndpoint : EndpointWithoutRequest<ProductDto>
     public override async Task HandleAsync(CancellationToken ct)
     {
         int productId = Route<int>("id");
-        Result<Product> result = await _productService.GetByIdAsync(productId, ct);
+        Result<ProductModel> result = await _productService.GetByIdAsync(productId, ct);
 
         if (result.IsSuccess)
         {
@@ -61,12 +59,6 @@ public sealed class GetProductEndpoint : EndpointWithoutRequest<ProductDto>
             return;
         }
 
-        if (result.HasError<NotFoundError>())
-        {
-            await Send.ResultAsync(ProblemResults.NotFound(result.Errors[0].Message));
-            return;
-        }
-
-        throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Message)));
+        await Send.ResultAsync(ProblemResults.ForErrors(result.Errors));
     }
 }

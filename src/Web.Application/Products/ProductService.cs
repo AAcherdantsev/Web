@@ -1,5 +1,4 @@
 using FluentResults;
-using FluentValidation.Results;
 using Web.Application.Common;
 using Web.Application.Common.Errors;
 using Web.Application.Common.Repositories;
@@ -14,6 +13,7 @@ namespace Web.Application.Products;
 public sealed class ProductService : IProductService
 {
     private const string PRODUCT_NOT_FOUND = "Product not found.";
+    private const string PRODUCT_CHANGED = "The product was changed by another request. Try again.";
 
     private readonly IProductRepository _repository;
     private readonly TimeProvider _timeProvider;
@@ -30,50 +30,82 @@ public sealed class ProductService : IProductService
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<Product>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ProductModel>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return _repository.GetAllAsync(cancellationToken);
+        IReadOnlyList<Product> products = await _repository.GetAllAsync(cancellationToken);
+
+        return products.Select(ToModel).ToList();
     }
 
     /// <inheritdoc />
-    public Task<PagedList<Product>> GetPagedAsync(GetPagedProductsQuery query, CancellationToken cancellationToken)
+    public async Task<Result<PagedList<ProductModel>>> GetPagedAsync(GetPagedProductsQuery query,
+        CancellationToken cancellationToken)
     {
-        return _repository.GetPagedAsync(query.PageNumber, query.PageSize, cancellationToken);
+        // The API validates the same rules. The check is repeated here, because the offset must be an int in the store.
+        if (!PageRules.IsPageNumberNonNegative(query.PageNumber))
+        {
+            return Result.Fail(new ValidationError(PageRules.PAGE_NUMBER_NEGATIVE));
+        }
+
+        if (!PageRules.IsPageSizeAtLeastOne(query.PageSize))
+        {
+            return Result.Fail(new ValidationError(PageRules.PAGE_SIZE_TOO_SMALL));
+        }
+
+        if (!PageRules.IsOffsetWithinInt(query.PageNumber, query.PageSize))
+        {
+            return Result.Fail(new ValidationError(PageRules.PAGE_OFFSET_TOO_LARGE));
+        }
+
+        PagedList<Product> page =
+            await _repository.GetPagedAsync(query.PageNumber, query.PageSize, cancellationToken);
+
+        return Result.Ok(new PagedList<ProductModel>(
+            page.Values.Select(ToModel),
+            page.TotalCount,
+            page.PageNumber,
+            page.PageSize));
     }
 
     /// <inheritdoc />
-    public async Task<Result<Product>> GetByIdAsync(int id, CancellationToken cancellationToken)
+    public async Task<Result<ProductModel>> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         Product? product = await _repository.FindByIdAsync(id, cancellationToken);
 
         return product is null
             ? Result.Fail(new NotFoundError(PRODUCT_NOT_FOUND))
-            : Result.Ok(product);
+            : Result.Ok(ToModel(product));
     }
 
     /// <inheritdoc />
-    public async Task<Result<Product>> CreateAsync(CreateProductCommand command, CancellationToken cancellationToken)
+    public async Task<Result<ProductModel>> CreateAsync(CreateProductCommand command, CancellationToken cancellationToken)
     {
-        Result<Product> creation = ProductFactory.Create(command, _timeProvider.GetUtcNow());
-        if (creation.IsFailed)
+        string description = command.Description ?? string.Empty;
+
+        IReadOnlyList<string> violations =
+            ProductRules.Violations(command.Name, command.ImgUri, command.Price, description);
+        if (violations.Count > 0)
         {
-            return creation;
+            return Result.Fail(violations.Select(v => new ValidationError(v)));
         }
 
-        await _repository.AddAsync(creation.Value, cancellationToken);
-        return creation;
+        Product product = new(command.Name, command.ImgUri, command.Price, description,
+            _timeProvider.GetUtcNow());
+
+        Product stored = await _repository.AddAsync(product, cancellationToken);
+        return Result.Ok(ToModel(stored));
     }
 
     /// <inheritdoc />
-    public async Task<Result<Product>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command,
+    public async Task<Result<ProductModel>> UpdateDescriptionAsync(UpdateProductDescriptionCommand command,
         CancellationToken cancellationToken)
     {
-        ValidationResult validation =
-            await new UpdateProductDescriptionValidator().ValidateAsync(command, cancellationToken);
+        string description = command.Description ?? string.Empty;
 
-        if (!validation.IsValid)
+        IReadOnlyList<string> violations = ProductRules.DescriptionViolations(description);
+        if (violations.Count > 0)
         {
-            return Result.Fail(validation.Errors.Select(e => e.ErrorMessage));
+            return Result.Fail(violations.Select(v => new ValidationError(v)));
         }
 
         Product? product = await _repository.FindByIdAsync(command.Id, cancellationToken);
@@ -82,8 +114,31 @@ public sealed class ProductService : IProductService
             return Result.Fail(new NotFoundError(PRODUCT_NOT_FOUND));
         }
 
-        product.ChangeDescription(command.Description ?? string.Empty, _timeProvider.GetUtcNow());
-        await _repository.UpdateAsync(product, cancellationToken);
-        return Result.Ok(product);
+        product.ChangeDescription(description, _timeProvider.GetUtcNow());
+
+        try
+        {
+            Product stored = await _repository.UpdateAsync(product, cancellationToken);
+            return Result.Ok(ToModel(stored));
+        }
+        catch (ProductConflictException)
+        {
+            // Another request saved the product after it was read here. The client can read it again and retry.
+            return Result.Fail(new ConflictError(PRODUCT_CHANGED));
+        }
+    }
+
+    private static ProductModel ToModel(Product product)
+    {
+        return new()
+        {
+            Id = product.Id,
+            Name = product.Name,
+            ImgUri = product.ImgUri,
+            Price = product.Price,
+            Description = product.Description,
+            CreatedAt = product.CreatedAt,
+            LastUpdatedAt = product.LastUpdatedAt
+        };
     }
 }

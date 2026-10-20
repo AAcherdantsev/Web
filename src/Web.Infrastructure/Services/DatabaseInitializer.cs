@@ -1,5 +1,6 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Web.Infrastructure.Mock;
 using Web.Infrastructure.Persistence;
@@ -77,15 +78,32 @@ public static class DatabaseInitializer
     /// <summary>
     ///     Adds example products to the database if none exist.
     /// </summary>
+    /// <remarks>
+    ///     Two instances that start at the same time must not both seed the table. The check and the insert run in one
+    ///     transaction that takes an exclusive table lock, so the second instance waits, then finds the products. The
+    ///     transaction runs inside the execution strategy, because the retry policy does not allow user transactions.
+    /// </remarks>
     /// <param name="context">The database context.</param>
+    /// <param name="timeProvider">The source of the creation time of the examples.</param>
     private static async Task AddProductExamplesAsync(DatabaseContext context, TimeProvider timeProvider)
     {
-        if (context.Products.Any())
-        {
-            return;
-        }
+        IExecutionStrategy strategy = context.Database.CreateExecutionStrategy();
 
-        context.Products.AddRange(ProductSeedData.CreateProducts(timeProvider.GetUtcNow()));
-        await context.SaveChangesAsync();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using IDbContextTransaction transaction = await context.Database.BeginTransactionAsync();
+
+            bool hasProducts = await context.Products
+                .FromSqlRaw("SELECT * FROM Products WITH (TABLOCKX, HOLDLOCK)")
+                .AnyAsync();
+            if (hasProducts)
+            {
+                return;
+            }
+
+            context.Products.AddRange(ProductSeedData.CreateProducts(timeProvider.GetUtcNow()));
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        });
     }
 }

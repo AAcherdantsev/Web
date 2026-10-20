@@ -4,7 +4,6 @@ using Web.Api.Configuration.RateLimiting;
 using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Features.Products.GetAllProducts;
 
@@ -47,7 +46,7 @@ public sealed class GetAllProductsEndpoint : EndpointWithoutRequest<List<Product
     /// <inheritdoc />
     public override async Task HandleAsync(CancellationToken ct)
     {
-        IReadOnlyList<Product> products = await _productService.GetAllAsync(ct);
+        IReadOnlyList<ProductModel> products = await _productService.GetAllAsync(ct);
 
         await Send.ResponseAsync(products.Adapt<List<ProductDto>>(), cancellation: ct);
     }

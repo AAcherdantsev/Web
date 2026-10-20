@@ -67,24 +67,35 @@ internal class ProductRepository : IProductRepository
     }
 
     /// <inheritdoc />
-    public async Task AddAsync(Product product, CancellationToken cancellationToken)
+    public async Task<Product> AddAsync(Product product, CancellationToken cancellationToken)
     {
         await _context.Products.AddAsync(product, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Product {product} created successfully", product);
+        return product;
     }
 
     /// <inheritdoc />
-    public async Task UpdateAsync(Product product, CancellationToken cancellationToken)
+    public async Task<Product> UpdateAsync(Product product, CancellationToken cancellationToken)
     {
         if (_context.Entry(product).State == EntityState.Detached)
         {
             _context.Products.Update(product);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            // The UPDATE checks the row version that was read, so a change saved in between makes it match no row
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _logger.LogWarning("Product with ID {ProductId} was changed by another request", product.Id);
+            throw new ProductConflictException(product.Id);
+        }
 
         _logger.LogInformation("Product {ProductId} updated successfully", product.Id);
+        return product;
     }
 }

@@ -3,7 +3,7 @@ using System.Text.Json;
 using Moq;
 using Web.Api.Tests.IntegrationTests;
 using Web.Api.Tests.TestData;
-using Web.Domain.Entities;
+using Web.Application.Products;
 
 namespace Web.Api.Tests.Endpoints.V1;
 
@@ -14,7 +14,7 @@ public class GetAllProductsEndpointTests : IntegrationTestBase
     public async Task GetProducts_ReturnsEveryProductAsJson()
     {
         // Arrange
-        IReadOnlyList<Product> products = [TestProducts.Create(1, "A", 10), TestProducts.Create(2, "B", 20)];
+        IReadOnlyList<ProductModel> products = [TestProducts.Create(1, "A", 10), TestProducts.Create(2, "B", 20)];
         ServiceMock.Setup(s => s.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(products);
 
         // Act

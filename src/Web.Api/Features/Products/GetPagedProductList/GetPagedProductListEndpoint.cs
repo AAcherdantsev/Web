@@ -1,13 +1,14 @@
 using FastEndpoints;
+using FluentResults;
 using Mapster;
 using Microsoft.Extensions.Options;
 using Web.Api.Configuration;
 using Web.Api.Configuration.RateLimiting;
+using Web.Api.Errors;
 using Web.Api.Extensions;
 using Web.Api.Models;
 using Web.Application.Common;
 using Web.Application.Products;
-using Web.Domain.Entities;
 
 namespace Web.Api.Features.Products.GetPagedProductList;
 
@@ -70,8 +71,14 @@ public sealed class GetPagedProductListEndpoint : Endpoint<GetPagedProductListRe
             PageSize = req.PageSize ?? _pagination.DefaultPageSize
         };
 
-        PagedList<Product> page = await _productService.GetPagedAsync(query, ct);
+        Result<PagedList<ProductModel>> result = await _productService.GetPagedAsync(query, ct);
 
-        await Send.ResponseAsync(page.Adapt<PagedList<ProductDto>>(), cancellation: ct);
+        if (result.IsFailed)
+        {
+            await Send.ResultAsync(ProblemResults.ForErrors(result.Errors));
+            return;
+        }
+
+        await Send.ResponseAsync(result.Value.Adapt<PagedList<ProductDto>>(), cancellation: ct);
     }
 }
