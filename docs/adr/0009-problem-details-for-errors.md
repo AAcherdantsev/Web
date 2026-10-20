@@ -11,17 +11,16 @@ Clients need a predictable way to read errors. Validation, expected failures, an
 
 All error responses use **RFC 7807 problem details** with the `application/problem+json` content type.
 
-- Validation errors come from FastEndpoints with `c.Errors.UseProblemDetails()`. Each failed field is listed in `errors` as `{ "name": ..., "reason": ... }`.
-- Expected failures such as "not found" are built with `ProblemResults` in `Api/Errors`.
+- Validation errors come from FastEndpoints through a custom `c.Errors.ResponseBuilder`. Each failed field is listed in `errors` as `{ "name": ..., "reason": ..., "code": ... }`.
+- Expected failures such as "not found" or concurrency conflicts are built with `ProblemResults` in `Api/Errors`.
 - Unexpected exceptions are handled by the global exception handler. It returns `500` with a generic title. The exception message and stack trace are shown only in the Development environment.
-- Status codes follow the HTTP semantics: 400 for invalid input, 404 for a missing resource, 500 for unexpected failures.
+- Status codes follow the HTTP semantics: 400 for invalid input, 404 for a missing resource, 409 for a concurrency conflict, 500 for unexpected failures.
 
 ## Consequences
 
-- Clients parse one format for all errors.
+- Clients parse one format for all errors, and every response carries standard RFC 9110 `type` URIs, `instance`, and `traceId`.
 - Internal details do not leak in production.
-- The `errors` array uses FastEndpoints' field naming, which is camel-case property names. That is a convention rather than part of RFC 7807, and clients should read `errors[].name`.
-- Problem responses do not have stable `type` URIs yet. Adding documentation for each error type would be the next step.
+- The `errors` array uses FastEndpoints' field naming, which is camel-case property names. That is a convention rather than part of RFC 7807, and clients should read `errors[].name` and `errors[].code`.
 
 ## Alternatives considered
 

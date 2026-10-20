@@ -9,13 +9,6 @@ namespace Web.Domain.Entities;
 public class Product : BaseEntity
 {
     /// <summary>
-    ///     Constructor used by Entity Framework Core when it loads a product.
-    /// </summary>
-    private Product()
-    {
-    }
-
-    /// <summary>
     ///     Creates a new product that has not been stored yet.
     /// </summary>
     /// <param name="name">The product name.</param>

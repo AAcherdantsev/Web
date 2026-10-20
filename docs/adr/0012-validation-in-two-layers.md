@@ -17,8 +17,8 @@ Domain entities (`Product`) enforce the business rules themselves, so no entry p
 ## Consequences
 
 - Clients get complete, field-level errors with specific error codes before any work is done.
-- **Reduced duplication:** Because business rules are centralized in `ProductValidationRules` as extension methods, they no longer need to be written twice (once for the HTTP shape and once for the Domain). When a rule changes, it only needs to be updated in one place.
-- Business rules cannot be bypassed by a new endpoint, provided the new models apply the shared application-level validation rules.
+- **Reduced duplication:** Because business rules are centralized in `ProductRules` as predicates and exposed through `ProductValidation`, they no longer need to be written twice (once for the HTTP shape and once for the Domain). When a rule changes, it only needs to be updated in one place.
+- Business rules cannot be bypassed by any entry point, because the `Product` entity enforces them directly whenever a product is created or changed (see [0022](0022-domain-entity-enforces-invariants.md)).
 - Malformed JSON and type mismatches are rejected by the framework before validation, with a 400 response.
 
 ## Alternatives considered

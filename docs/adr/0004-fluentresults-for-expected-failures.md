@@ -13,9 +13,9 @@ The application services return `Result<T>` from **FluentResults 4.0** for expec
 
 Rules:
 
-1. Expected failures are returned as failed results. Endpoints check `IsSuccess` and `HasError<NotFoundError>()`.
-2. Unexpected failures are thrown as exceptions. Repositories do not catch them. The global exception handler turns them into HTTP 500 responses (see [0009](0009-problem-details-for-errors.md)).
-3. Endpoints map a failed result to a response with `ProblemResults`. Listing endpoints treat a failed result as unexpected and throw.
+1. Expected failures are returned as failed results (`NotFoundError`, `ValidationError`, `ConflictError`).
+2. Unexpected failures are thrown as exceptions. Repositories only catch `DbUpdateConcurrencyException` to translate it into `ProductConflictException` (see [0021](0021-optimistic-concurrency-with-row-version.md)). The global exception handler turns unhandled exceptions into HTTP 500 responses (see [0009](0009-problem-details-for-errors.md)).
+3. Endpoints map any failed result to an HTTP response with `ProblemResults.ForErrors(result.Errors)`.
 
 ## Consequences
 
@@ -23,7 +23,7 @@ Rules:
 - Typed errors let endpoints choose the status code without parsing strings.
 - Database and infrastructure errors reach the client as 500, not 400.
 - We take on a dependency. FluentResults is MIT-licensed and small, but its implicit conversions (`return product;` for `Result<Product>`) can hide intent.
-- Rule 2 has to be kept. A repository that catches every exception would turn outages into client errors. The integration test `CreateProductAsync_WhenDatabaseFails_ThrowsInsteadOfReturningFailure` guards it.
+- Rule 2 has to be kept. A repository that catches every exception would turn outages into client errors. The integration test `GetProduct_WhenTheServiceThrows_Returns500ProblemDetails` in `ErrorHandlingTests` verifies the HTTP 500 behaviour.
 
 The repository and endpoints use only `IsSuccess`, `Value`, `Errors`, and `HasError<T>()`, so the library could be replaced with a project-owned result type without changing the design.
 

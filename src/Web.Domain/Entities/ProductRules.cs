@@ -2,8 +2,8 @@ namespace Web.Domain.Entities;
 
 /// <summary>
 ///     The business rules of a product. Each rule is defined once here, as a predicate and a message. The entity uses
-///     the predicates when a product is created or changed, and the request validators in the Application project use
-///     the same predicates, so the two layers cannot disagree.
+///     the predicates when a product is created or changed, and the request validators in the API project use
+///     the same predicates through the application facade, so the layers cannot disagree.
 /// </summary>
 public static class ProductRules
 {
