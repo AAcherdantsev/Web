@@ -51,7 +51,7 @@ Swagger UI is then at **http://localhost:5211/swagger**. The HTTPS profile uses 
 
 ### Option 2: database through .NET Aspire
 
-1. **Set the SQL Server superuser password** (only once). It must be at least 8 characters and contain characters from three of these sets: uppercase letters, lowercase letters, digits, and symbols. Replace `MyStrongP@ssw0rd` with your password:
+1. **Set the SQL Server superuser password** (only once). It must be at least 8 characters and contain characters from three of these sets: uppercase letters, lowercase letters, digits, and symbols. If the password does not meet the MS SQL requirements, the database will not start. Replace `MyStrongP@ssw0rd` with your password:
 
    ```bash
    cd src/Web.AppHost
@@ -80,7 +80,9 @@ Swagger UI is then at **http://localhost:5211/swagger**. The HTTPS profile uses 
 
 <img width="1419" height="946" alt="image" src="https://github.com/user-attachments/assets/7197c9e7-2be4-4f34-a3ae-fda3d09555e5" />
 
-**Troubleshooting:** SQL Server stores the `sa` password in its data volume when the volume is created. If `sql-password` changes later, the database stays unhealthy with `Login failed for user 'sa'`. Set the original password back, or delete the volume (`web.apphost-<hash>-sql-data`, see `docker volume ls`). Deleting it removes the data.
+**Troubleshooting:** SQL Server stores the `sa` password in its data volume when the volume is created. If `sql-password` changes later, the database stays unhealthy with `Login failed for user 'sa'`. Set the original password back, or delete the volume (`web.apphost-<hash>-sql-data`, see `docker volume ls`). Deleting it removes the data. If the error persists, you'll need to delete the database container and try again.
+
+This has been tested on Mac OS 27.0.1 + Rider and Windows 10 + Visual Studio 2022 (latest) with the latest version of Docker. The password for the `sa` user in this test was set to `MyStrongP@ssw0rd`.
 
 To run the mock source through Aspire, start the AppHost with `DataSource=Mock`. SQL Server is then not started:
 
