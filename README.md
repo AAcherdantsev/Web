@@ -1,5 +1,8 @@
 # Web API
 
+[![PR Check](https://github.com/AAcherdantsev/Web/actions/workflows/pr-check.yml/badge.svg?branch=main)](https://github.com/AAcherdantsev/Web/actions/workflows/pr-check.yml)
+
+
 A REST API for the products of an e-commerce shop. It lists all products, lists them with pagination (v2), returns one product, creates a product, and updates a product's description. It is built with **.NET 10**, **FastEndpoints**, and **Entity Framework Core**, and stores data in **MS SQL Server**. An in-memory **mock data source** lets the API and its tests run without a database.
 
 ## Assignment
